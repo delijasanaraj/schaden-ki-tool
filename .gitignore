@@ -1,0 +1,27 @@
+# Vercel
+.vercel
+
+# Umgebungsvariablen (enthalten den API-Key - niemals committen)
+.env*
+!.env.example
+
+# Node
+node_modules
+
+# Next.js Build-Output
+.next/
+out/
+build/
+
+# Debug-Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Betriebssystem
+.DS_Store
+*.pem
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

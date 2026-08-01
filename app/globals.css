@@ -1,0 +1,50 @@
+:root {
+  --color-key1: #1c93da;
+  --color-secondary: #25d366;
+  --color-dark: #07071a;
+  --color-light: #f7f7f7;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-danger: #c0392b;
+  --color-warning-bg: #fff4e5;
+  --color-warning-border: #e5a53c;
+  --radius-m: 12px;
+  --radius-l: 20px;
+  --shadow-card: 0 4px 20px rgba(7, 7, 26, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  font-family: "Instrument Sans", system-ui, sans-serif;
+  background: var(--color-light);
+  color: var(--color-dark);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-key1);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}

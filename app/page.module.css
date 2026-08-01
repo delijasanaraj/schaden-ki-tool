@@ -1,0 +1,158 @@
+.header {
+  background: var(--color-dark);
+  color: #fff;
+}
+
+.headerInner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.headerCall {
+  background: var(--color-key1);
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.hero {
+  background: linear-gradient(180deg, #eaf4fb 0%, var(--color-light) 100%);
+  padding: 56px 20px 40px;
+}
+
+.heroInner {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.heroTitle {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+
+@media (max-width: 560px) {
+  .heroTitle {
+    font-size: 26px;
+  }
+}
+
+.heroLead {
+  font-size: 17px;
+  color: #3d3d4a;
+  margin: 0 0 24px;
+}
+
+.trustList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 18px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.trustList li::before {
+  content: "✓ ";
+  color: var(--color-secondary);
+  font-weight: 700;
+}
+
+.disclaimerBanner {
+  background: #fff;
+  border: 1px solid var(--color-warning-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13.5px;
+  color: #6b4a10;
+  text-align: left;
+}
+
+.steps {
+  padding: 8px 20px 48px;
+}
+
+.stepsInner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .stepsInner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stepCard {
+  background: #fff;
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.stepCard h3 {
+  margin: 12px 0 6px;
+  font-size: 16px;
+}
+
+.stepCard p {
+  margin: 0;
+  font-size: 14px;
+  color: #57576a;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-key1);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.wizardSection {
+  padding: 8px 16px 64px;
+}
+
+.footer {
+  background: var(--color-dark);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 28px 20px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.footer a {
+  color: #fff;
+}
+
+.footerSmall {
+  opacity: 0.65;
+  margin-top: 6px;
+}
