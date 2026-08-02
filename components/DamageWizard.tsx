@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } fro
 import styles from "./DamageWizard.module.css";
 import { compressImage } from "@/lib/compressImage";
 import { MAX_IMAGES, MIN_IMAGES, ACCEPTED_MIME_TYPES, type AnalysisResult, type VehicleData } from "@/lib/schema";
+import { CAR_MAKES, CAR_MODELS, getYearOptions } from "@/lib/vehicleData";
 
 type Step = "upload" | "details" | "consent" | "loading" | "result" | "error";
 
@@ -34,6 +35,8 @@ const DAMAGE_AREAS = [
   "mehrere Bereiche",
   "nicht sicher",
 ];
+
+const YEAR_OPTIONS = getYearOptions();
 
 export default function DamageWizard() {
   const [step, setStep] = useState<Step>("upload");
@@ -229,6 +232,18 @@ export default function DamageWizard() {
             </div>
           )}
 
+          <ul className={styles.trustList}>
+            <li>Keine Registrierung erforderlich</li>
+            <li>Einfache Fotoanalyse</li>
+            <li>Unverbindliche Ersteinschätzung</li>
+            <li>Persönliche Prüfung durch einen Kfz-Gutachter möglich</li>
+          </ul>
+
+          <div className={styles.disclaimerBox}>
+            Die Online-Analyse ersetzt weder ein Gutachten noch einen Kostenvoranschlag. Verdeckte oder
+            sicherheitsrelevante Schäden können auf Fotos möglicherweise nicht erkannt werden.
+          </div>
+
           <div className={styles.actionsRow}>
             <button
               type="button"
@@ -253,27 +268,46 @@ export default function DamageWizard() {
           <div className={styles.formGrid}>
             <label className={styles.field}>
               <span>Fahrzeughersteller</span>
-              <input
-                type="text"
+              <select
                 value={vehicleData.make || ""}
-                onChange={(e) => setVehicleData((v) => ({ ...v, make: e.target.value }))}
-              />
+                onChange={(e) => setVehicleData((v) => ({ ...v, make: e.target.value, model: "" }))}
+              >
+                <option value="">Bitte wählen</option>
+                {CAR_MAKES.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className={styles.field}>
               <span>Fahrzeugmodell</span>
-              <input
-                type="text"
+              <select
                 value={vehicleData.model || ""}
+                disabled={!vehicleData.make}
                 onChange={(e) => setVehicleData((v) => ({ ...v, model: e.target.value }))}
-              />
+              >
+                <option value="">{vehicleData.make ? "Bitte wählen" : "Zuerst Hersteller wählen"}</option>
+                {(CAR_MODELS[vehicleData.make || ""] || []).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className={styles.field}>
               <span>Baujahr / Erstzulassung</span>
-              <input
-                type="text"
+              <select
                 value={vehicleData.firstRegistration || ""}
                 onChange={(e) => setVehicleData((v) => ({ ...v, firstRegistration: e.target.value }))}
-              />
+              >
+                <option value="">Bitte wählen</option>
+                {YEAR_OPTIONS.map((y) => (
+                  <option key={y} value={String(y)}>
+                    {y}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className={styles.field}>
               <span>Kilometerstand</span>
@@ -575,7 +609,12 @@ function ResultView({
           <a className={styles.primaryBtnLink} href="tel:+4917699808695">
             Jetzt direkt anrufen
           </a>
-          <a className={styles.secondaryBtnLink} href={whatsappHref} target="_blank" rel="noreferrer">
+          <a
+            className={`${styles.secondaryBtnLink} ${styles.whatsappBtn}`}
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+          >
             WhatsApp schreiben
           </a>
           <a className={styles.secondaryBtnLink} href={mailtoHref}>

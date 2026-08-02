@@ -15,24 +15,13 @@ export default function Home() {
 
       <section className={styles.hero}>
         <div className={styles.heroInner}>
+          <span className={styles.heroEyebrow}>Schadenssumme in 2 Minuten selbst herausfinden</span>
           <h1 className={styles.heroTitle}>Fahrzeugschaden in wenigen Schritten einschätzen lassen</h1>
           <p className={styles.heroLead}>
             Laden Sie einige aussagekräftige Fotos hoch und ergänzen Sie bei Bedarf Angaben zu Ihrem
             Fahrzeug und zum Unfall. Anschließend erhalten Sie eine unverbindliche KI-gestützte
             Ersteinschätzung der sichtbar erkennbaren Beschädigungen.
           </p>
-
-          <ul className={styles.trustList}>
-            <li>Keine Registrierung erforderlich</li>
-            <li>Einfache Fotoanalyse</li>
-            <li>Unverbindliche Ersteinschätzung</li>
-            <li>Persönliche Prüfung durch einen Kfz-Gutachter möglich</li>
-          </ul>
-
-          <div className={styles.disclaimerBanner}>
-            Die Online-Analyse ersetzt weder ein Gutachten noch einen Kostenvoranschlag. Verdeckte oder
-            sicherheitsrelevante Schäden können auf Fotos möglicherweise nicht erkannt werden.
-          </div>
         </div>
       </section>
 

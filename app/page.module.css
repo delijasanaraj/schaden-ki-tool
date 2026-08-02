@@ -40,6 +40,18 @@
   text-align: center;
 }
 
+.heroEyebrow {
+  display: inline-block;
+  background: var(--color-key1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+
 .heroTitle {
   font-size: 34px;
   font-weight: 600;
@@ -57,34 +69,6 @@
   font-size: 17px;
   color: #3d3d4a;
   margin: 0 0 24px;
-}
-
-.trustList {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px 18px;
-  list-style: none;
-  padding: 0;
-  margin: 0 0 24px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.trustList li::before {
-  content: "✓ ";
-  color: var(--color-secondary);
-  font-weight: 700;
-}
-
-.disclaimerBanner {
-  background: #fff;
-  border: 1px solid var(--color-warning-border);
-  border-radius: 12px;
-  padding: 14px 18px;
-  font-size: 13.5px;
-  color: #6b4a10;
-  text-align: left;
 }
 
 .steps {
