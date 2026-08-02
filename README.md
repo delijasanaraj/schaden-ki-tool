@@ -119,3 +119,5 @@ lib/
   prompt.ts               System-Prompt mit den konservativen KI-Regeln
   compressImage.ts        Client-seitige Bildverkleinerung vor Upload
 ```
+
+_Automatisch verbunden mit Vercel via GitHub._
