@@ -3,8 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import styles from "./DamageWizard.module.css";
 import { compressImage } from "@/lib/compressImage";
-import { MAX_IMAGES, MIN_IMAGES, ACCEPTED_MIME_TYPES, type AnalysisResult, type VehicleData } from "@/lib/schema";
+import {
+  MAX_IMAGES,
+  MIN_IMAGES,
+  MAX_TOTAL_UPLOAD_BYTES,
+  ACCEPTED_MIME_TYPES,
+  type AnalysisResult,
+  type VehicleData,
+  type VehicleExtractionResult,
+} from "@/lib/schema";
 import { CAR_MAKES, CAR_MODELS, getYearOptions } from "@/lib/vehicleData";
+
+const GENERIC_ERROR_MESSAGE =
+  "Die Analyse konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es erneut oder senden Sie Ihre Fotos direkt über die Kontaktanfrage an den Gutachter.";
 
 type Step = "upload" | "details" | "consent" | "loading" | "result" | "error";
 
@@ -67,7 +78,9 @@ export default function DamageWizard() {
         setFileError(`Sie können maximal ${MAX_IMAGES} Fotos hochladen.`);
         return;
       }
+      let runningTotalBytes = photos.reduce((sum, p) => sum + p.file.size, 0);
       const accepted: Photo[] = [];
+      let sizeBlocked = false;
       for (const file of incoming.slice(0, room)) {
         if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
           setFileError("Nur JPEG, PNG und WebP werden unterstützt.");
@@ -78,6 +91,11 @@ export default function DamageWizard() {
           continue;
         }
         const compressed = await compressImage(file);
+        if (runningTotalBytes + compressed.size > MAX_TOTAL_UPLOAD_BYTES) {
+          sizeBlocked = true;
+          break;
+        }
+        runningTotalBytes += compressed.size;
         accepted.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           file: compressed,
@@ -87,11 +105,15 @@ export default function DamageWizard() {
       if (accepted.length > 0) {
         setPhotos((prev) => [...prev, ...accepted]);
       }
-      if (incoming.length > room) {
+      if (sizeBlocked) {
+        setFileError(
+          "Die Fotos sind zusammen zu groß für eine Übertragung. Es wurden nur die ersten Fotos übernommen - bitte entfernen Sie ggf. einige oder verwenden Sie kleinere Dateien."
+        );
+      } else if (incoming.length > room) {
         setFileError(`Es wurden nur ${room} weitere Fotos übernommen (maximal ${MAX_IMAGES} insgesamt).`);
       }
     },
-    [photos.length]
+    [photos]
   );
 
   const removePhoto = (id: string) => {
@@ -117,32 +139,96 @@ export default function DamageWizard() {
     setSubmitting(true);
     setStep("loading");
     setErrorMessage(null);
+
+    // Schuetzt vor einer haengenden Anfrage (z.B. bei vielen grossen Fotos) -
+    // ohne Timeout blieb die Seite sonst unbegrenzt im Ladezustand haengen,
+    // was als "Absturz" wahrgenommen wurde.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 70_000);
+
     try {
       const formData = new FormData();
       photos.forEach((p) => formData.append("photos", p.file, p.file.name));
       formData.append("vehicleData", JSON.stringify(vehicleData));
 
-      const res = await fetch("/api/analyze", { method: "POST", body: formData });
+      const res = await fetch("/api/analyze", { method: "POST", body: formData, signal: controller.signal });
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(
-          data.message ||
-            "Die Analyse konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es erneut oder senden Sie Ihre Fotos direkt über die Kontaktanfrage an den Gutachter."
-        );
+        setErrorMessage(data.message || GENERIC_ERROR_MESSAGE);
         setStep("error");
         return;
       }
 
       setResult(data.result);
       setStep("result");
-    } catch {
+    } catch (err) {
+      const isTimeout = err instanceof DOMException && err.name === "AbortError";
       setErrorMessage(
-        "Die Analyse konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es erneut oder senden Sie Ihre Fotos direkt über die Kontaktanfrage an den Gutachter."
+        isTimeout
+          ? "Die Analyse hat zu lange gedauert und wurde abgebrochen. Bitte versuchen Sie es mit weniger Fotos erneut, oder kontaktieren Sie den Gutachter direkt."
+          : GENERIC_ERROR_MESSAGE
       );
       setStep("error");
     } finally {
+      clearTimeout(timeoutId);
       setSubmitting(false);
+    }
+  };
+
+  const [registrationExtracting, setRegistrationExtracting] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [registrationDetected, setRegistrationDetected] = useState<string | null>(null);
+
+  const handleRegistrationUpload = async (file: File) => {
+    setRegistrationError(null);
+    setRegistrationDetected(null);
+    if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+      setRegistrationError("Nur JPEG, PNG und WebP werden unterstützt.");
+      return;
+    }
+    setRegistrationExtracting(true);
+    try {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append("document", compressed, compressed.name);
+      const res = await fetch("/api/extract-vehicle", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok || !data.result?.found) {
+        setRegistrationError(
+          data.message || "Es konnten keine Fahrzeugdaten erkannt werden. Bitte tragen Sie die Angaben manuell ein."
+        );
+        return;
+      }
+
+      const extracted: VehicleExtractionResult = data.result;
+      const matchedMake = CAR_MAKES.find((m) => m.toLowerCase() === extracted.make.trim().toLowerCase());
+      const effectiveMake = matchedMake ?? (extracted.make.trim() ? "Sonstiger Hersteller" : undefined);
+      const modelsForMake = effectiveMake ? CAR_MODELS[effectiveMake] || [] : [];
+      const matchedModel = modelsForMake.find((m) => m.toLowerCase() === extracted.model.trim().toLowerCase());
+      const effectiveModel = matchedModel ?? (extracted.model.trim() ? "Sonstiges Modell" : undefined);
+      const year = /^\d{4}$/.test(extracted.firstRegistrationYear) ? extracted.firstRegistrationYear : undefined;
+
+      setVehicleData((v) => ({
+        ...v,
+        make: effectiveMake || v.make,
+        model: effectiveModel || v.model,
+        firstRegistration: year || v.firstRegistration,
+      }));
+
+      const detectedLabel = [extracted.make, extracted.model, extracted.firstRegistrationYear]
+        .filter(Boolean)
+        .join(" · ");
+      setRegistrationDetected(
+        detectedLabel ? `Erkannt: ${detectedLabel} - bitte unten prüfen.` : "Es konnten keine Angaben erkannt werden."
+      );
+    } catch {
+      setRegistrationError(
+        "Der Fahrzeugschein konnte nicht ausgelesen werden. Bitte tragen Sie die Angaben manuell ein."
+      );
+    } finally {
+      setRegistrationExtracting(false);
     }
   };
 
@@ -207,7 +293,7 @@ export default function DamageWizard() {
               <strong>Fotos hierher ziehen</strong> oder klicken zum Auswählen
             </p>
             <p className={styles.dropzoneHint}>
-              JPEG, PNG oder WebP · {photos.length}/{MAX_IMAGES} Fotos · empfohlen 3–6 Fotos
+              JPEG, PNG oder WebP · {photos.length}/{MAX_IMAGES} Fotos · empfohlen 3–6, bis zu {MAX_IMAGES} möglich
             </p>
           </div>
 
@@ -264,6 +350,30 @@ export default function DamageWizard() {
             Diese Angaben sind freiwillig, helfen der KI aber bei der Einschätzung. Bitte geben Sie keine
             unnötigen personenbezogenen Daten ein.
           </p>
+
+          <div className={styles.registrationBox}>
+            <label className={styles.registrationLabel}>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleRegistrationUpload(file);
+                  e.target.value = "";
+                }}
+              />
+              <span className={styles.secondaryBtn}>
+                {registrationExtracting ? "Wird ausgelesen …" : "Fahrzeugschein hochladen (optional)"}
+              </span>
+            </label>
+            <p className={styles.smallNote}>
+              Füllt Hersteller, Modell und Baujahr automatisch aus. Wird ausschließlich dafür verwendet und
+              nicht gespeichert - Name, Anschrift und Kennzeichen werden nicht ausgelesen.
+            </p>
+            {registrationDetected && <p className={styles.registrationSuccess}>{registrationDetected}</p>}
+            {registrationError && <p className={styles.errorText}>{registrationError}</p>}
+          </div>
 
           <div className={styles.formGrid}>
             <label className={styles.field}>

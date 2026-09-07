@@ -6,21 +6,32 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
 
 ## Was hier bereits funktioniert
 
-- Foto-Upload (1–8 Bilder, JPEG/PNG/WebP, Vorschau, Entfernen, clientseitige Verkleinerung)
-- Optionale Fahrzeugdaten + Unfallbeschreibung (max. 1500 Zeichen)
+- Foto-Upload (1–20 Bilder, JPEG/PNG/WebP, Vorschau, Entfernen, clientseitige Verkleinerung,
+  Gesamtgrößen-Prüfung vor dem Absenden)
+- Fahrzeugschein-Upload (optional): liest Hersteller, Modell und Baujahr automatisch aus und füllt
+  das Formular aus - extrahiert bewusst **keine** Halterdaten, Anschrift, Kennzeichen oder VIN
+- Fahrzeughersteller/-modell als kaskadierende Auswahllisten, Baujahr ab 1950
+- Optionale Unfallbeschreibung (max. 1500 Zeichen)
 - Nicht vorausgewählte Einwilligung vor Analysestart
-- Serverseitige EXIF-Entfernung (inkl. GPS) vor Weiterverarbeitung, per `sharp`
-- Echte KI-Analyse über die Anthropic Claude API mit striktem, validiertem JSON-Ergebnis
-- Konservative, vorsichtige System-Prompt-Regeln (keine erfundenen Kosten, Sicherheitswarnung bei
-  Verdacht auf sicherheitsrelevante Schäden, ehrliches "keine seriöse Kostenspanne möglich")
-- Lade-, Erfolgs- und Fehlerzustand
+- Serverseitige EXIF-Entfernung (inkl. GPS) vor Weiterverarbeitung, per `sharp` - gilt für Schadenfotos
+  UND den Fahrzeugschein
+- Echte KI-Analyse über die Anthropic Claude API (Standard: `claude-opus-5`) mit striktem, validiertem
+  JSON-Ergebnis, hohem Analyse-Aufwand (`effort: high`) und Anweisung zu gründlicher, vollständiger
+  Schadenserfassung
+- Business-Kalibrierung der Kostenspanne: serverseitiger Aufschlag von standardmäßig +50 % auf die
+  von der KI geschätzte Reparaturkostenspanne (Regler: `COST_ESTIMATE_MULTIPLIER`, siehe unten)
+- Konservative, vorsichtige System-Prompt-Regeln (Sicherheitswarnung bei Verdacht auf sicherheitsrelevante
+  Schäden, ehrliches "keine seriöse Kostenspanne möglich")
+- Lade-, Erfolgs- und Fehlerzustand inkl. Zeitüberschreitungsschutz (bricht nach 70s selbst ab, statt
+  unbegrenzt zu hängen) und React-Error-Boundaries (`app/error.tsx`, `app/global-error.tsx`), damit ein
+  unerwarteter Fehler eine verständliche Meldung statt einer weißen/abgestürzten Seite zeigt
 - Kontaktübergabe per vorausgefülltem Anruf-/WhatsApp-/E-Mail-Link (kein automatischer Versand,
   der Nutzer entscheidet in seiner eigenen App)
 
 ## Was hier bewusst NICHT implementiert ist
 
-- **Keine dauerhafte Speicherung** von Fotos oder Ergebnissen (kein Datenbank-Anschluss). Fotos werden
-  nur im Arbeitsspeicher der Anfrage verarbeitet und danach verworfen.
+- **Keine dauerhafte Speicherung** von Fotos, Fahrzeugschein-Bildern oder Ergebnissen (kein
+  Datenbank-Anschluss). Alles wird nur im Arbeitsspeicher der Anfrage verarbeitet und danach verworfen.
 - **Kein CRM/Lead-Backend.** Die Kontaktübergabe passiert rein clientseitig über `mailto:` / `tel:` /
   `wa.me`-Links. Es gibt keine Weiterleitung an ein Onepage-CRM.
 - **Keine belastbare Ratenbegrenzung.** Die eingebaute IP-Zählung ist nur ein Notbehelf (siehe unten).
@@ -49,19 +60,27 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
 ### 1. Anthropic-API-Schlüssel besorgen
 - Auf https://console.anthropic.com registrieren
 - Unter "API Keys" einen neuen Schlüssel erzeugen
-- Abrechnung ist nutzungsabhängig (Pay-per-Use), kein Abo. Grobe Kostenschätzung pro Analyse (3–5 Fotos,
-  Modell `claude-sonnet-5`): ca. 0,01–0,03 € pro Analyse – die exakte Zahl hängt von Bildgröße und Textlänge
-  ab und sollte nach den ersten echten Analysen aus dem Anthropic-Dashboard abgelesen werden.
+- Abrechnung ist nutzungsabhängig (Pay-per-Use), kein Abo. **Kostenschätzung wurde nach oben angepasst:**
+  Mit `claude-opus-5`, `effort: high` und bis zu 20 Fotos pro Analyse liegt eine realistische Spanne bei
+  ca. 0,05–0,25 € pro Analyse, je nach Fotoanzahl - deutlich mehr als die ursprüngliche Schätzung mit
+  `claude-sonnet-5` und 8 Fotos (ca. 0,01–0,03 €). Das Fahrzeugschein-Auslesen (separates, günstiges
+  Modell `claude-haiku-4-5`) kostet nur Bruchteile eines Cents pro Vorgang. Nach den ersten echten
+  Analysen im Anthropic-Dashboard die tatsächlichen Kosten prüfen und ggf. ein Ausgabenlimit setzen.
 - Schlüssel **nur** in `.env.local` bzw. später in den Umgebungsvariablen des Hosting-Anbieters eintragen,
   niemals in Code oder Chat teilen.
 
 ### 2. Hosting einrichten (empfohlen: Vercel)
 - Auf https://vercel.com mit GitHub/E-Mail registrieren (Free-Tier reicht anfangs)
 - Dieses Projekt in ein eigenes GitHub-Repository pushen
-- In Vercel "Add New Project" → Repository auswählen → Umgebungsvariable `ANTHROPIC_API_KEY` (und optional
-  `ANTHROPIC_MODEL`, `RATE_LIMIT_PER_HOUR`) im Vercel-Projekt unter "Settings → Environment Variables"
-  eintragen
+- In Vercel "Add New Project" → Repository auswählen → Umgebungsvariablen `ANTHROPIC_API_KEY`,
+  `ANTHROPIC_MODEL`, `ANTHROPIC_EXTRACTION_MODEL`, `COST_ESTIMATE_MULTIPLIER`, `RATE_LIMIT_PER_HOUR`
+  im Vercel-Projekt unter "Settings → Environment Variables" eintragen
 - Deploy starten
+- **Wichtig bei mehr Fotos:** Der Vercel-Hobby-Plan (kostenlos) begrenzt Funktionslaufzeiten. Bei vielen
+  Fotos + hohem Analyse-Aufwand kann eine Analyse mehrere zehn Sekunden dauern. Sollte es trotz der
+  Absicherungen in diesem Projekt zu Zeitüberschreitungen kommen, ist ein Wechsel auf den kostenpflichtigen
+  Vercel-Pro-Plan (längere Funktionslaufzeiten konfigurierbar) die nächste sinnvolle Stufe - das würde ich
+  vorher mit dir besprechen, bevor ich es umsetze.
 
 ### 3. Domain verbinden (optional, später)
 - In Vercel unter "Settings → Domains" z. B. `schaden-check.stefan-witmaier.de` hinzufügen
@@ -70,28 +89,59 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
 - Bis dahin funktioniert die Seite unter der von Vercel automatisch vergebenen `*.vercel.app`-Adresse
 
 ### 4. Rechtliches prüfen (nicht von mir geprüft, echte rechtliche Prüfung nötig)
-- Die Datenschutzerklärung von stefan-witmaier.de muss ergänzt werden: Fotos und Angaben werden zur
-  Analyse an Anthropic (USA, mit Standard-Vertragsklauseln/EU-Datenschutzrahmen) übermittelt, dort
-  verarbeitet und nicht dauerhaft von dieser Anwendung gespeichert (Speicherdauer bei Anthropic selbst:
-  siehe deren aktuelle Data-Retention-Angaben, ggf. anwaltlich prüfen lassen)
+- Die Datenschutzerklärung von stefan-witmaier.de muss ergänzt werden: Fotos, Fahrzeugschein-Bilder und
+  Angaben werden zur Analyse an Anthropic (USA, mit Standard-Vertragsklauseln/EU-Datenschutzrahmen)
+  übermittelt, dort verarbeitet und nicht dauerhaft von dieser Anwendung gespeichert (Speicherdauer bei
+  Anthropic selbst: siehe deren aktuelle Data-Retention-Angaben, ggf. anwaltlich prüfen lassen)
+- Der Fahrzeugschein ist ein amtliches Dokument mit besonders schutzwürdigen Daten (auch wenn diese App
+  bewusst nur Hersteller/Modell/Baujahr ausliest und alles andere ignoriert) - das sollte in der
+  Datenschutzerklärung explizit erwähnt werden
 - Klären, ob ein Auftragsverarbeitungsvertrag (AVV) mit Anthropic nötig/möglich ist
 - Prüfen, ob ein Impressum auf dieser separaten Domain zusätzlich nötig ist (rechtlich empfehlenswert,
   auch wenn inhaltlich auf stefan-witmaier.de verwiesen wird)
+- Die "+50 % Kalibrierung" auf die Kostenspanne (siehe unten) ist eine bewusste Geschäftsentscheidung des
+  Gutachters, keine unabhängige KI-Aussage mehr - das sollte intern dokumentiert bleiben, auch wenn es dem
+  Nutzer gegenüber nicht als "roher KI-Wert + Aufschlag" kommuniziert wird
 
 ### 5. Vor dem Live-Schalten
 - Mit echten Testfotos in mehreren Szenarien testen (siehe Testfälle unten)
 - `robots: { index: false, follow: false }` in `app/layout.tsx` bewusst so gelassen, bis alles final
   geprüft ist – danach ggf. auf `index: true` umstellen
 
+## Kostenkalibrierung der Reparaturkostenspanne
+
+Der Gutachter hat zurückgemeldet, dass die reine KI-Schätzung tendenziell zu niedrig lag. Statt die KI
+anzuweisen, sich selbst zu "belügen", wurde das zweigleisig gelöst:
+
+1. **Der Prompt** (`lib/prompt.ts`) wurde geschärft: Die KI soll jetzt explizit reale Kostenfaktoren
+   einbeziehen, die auf Fotos nicht sichtbar sind (Ersatzteile, Lackierung angrenzender Teile,
+   Sensor-Kalibrierung, Arbeitszeit, Mehrwertsteuer) statt nur die sichtbare Schadensfläche zu bewerten.
+2. **Ein serverseitiger Kalibrierungsfaktor** (`COST_ESTIMATE_MULTIPLIER`, Standard `1.5` = +50 %) wird
+   danach auf die von der KI gelieferte Spanne angewendet - dokumentiert, nachvollziehbar im Code und
+   jederzeit über die Umgebungsvariable nachjustierbar, sobald echte Vergleichsdaten vorliegen. Die KI
+   selbst schätzt weiterhin unabhängig und ehrlich; die Kalibrierung ist eine separate, bewusste
+   Geschäftsentscheidung des Gutachters.
+
+**Empfehlung:** Diesen Faktor nach ein paar Wochen echter Nutzung mit tatsächlichen Gutachten-Werten
+abgleichen und bei Bedarf anpassen, statt ihn dauerhaft auf 1.5 zu belassen.
+
 ## Bekannte technische Grenzen
 
-- **Body-Größenlimit bei Serverless-Hosting:** Vercel begrenzt Anfragen im Free-/Pro-Tier auf wenige MB.
-  Die App verkleinert Fotos deshalb bereits im Browser auf max. 1600px Kantenlänge vor dem Upload – bei
-  sehr vielen sehr großen Originalfotos kann das dennoch knapp werden. Bei Bedarf: Upload-Limit auf z. B.
-  6 Fotos senken oder auf einen Hosting-Plan mit größerem Limit wechseln.
+- **Body-Größenlimit bei Serverless-Hosting:** Vercel-Funktionen lehnen Anfragen über ca. 4,5 MB pauschal
+  ab. Die App verkleinert Fotos deshalb im Browser und prüft die Gesamtgröße vor dem Absenden (siehe
+  `MAX_TOTAL_UPLOAD_BYTES` in `lib/schema.ts`) - bei 20 sehr detailreichen Fotos kann es dennoch knapp
+  werden, dann bitte einzelne Fotos entfernen.
+- **Funktionslaufzeit:** `maxDuration = 60` Sekunden ist gesetzt; bei vielen Fotos + hohem Analyse-Aufwand
+  kann eine Anfrage mehrere zehn Sekunden dauern. Der clientseitige 70-Sekunden-Timeout fängt ein Hängen
+  ab, zeigt dann aber einen Fehler statt eines Ergebnisses. Bei häufigen Zeitüberschreitungen: Vercel-Plan
+  prüfen (siehe oben) oder Fotoanzahl/Auflösung reduzieren.
 - **Ratenbegrenzung ist nur ein Notbehelf:** Die eingebaute Zählung lebt nur im Arbeitsspeicher einer
   einzelnen Serverless-Instanz und wird bei jedem Kaltstart zurückgesetzt. Für echten Schutz vor Missbrauch
   später z. B. Vercel-eigenes Rate-Limiting oder einen Dienst wie Upstash Redis ergänzen.
+- **Fahrzeugschein-Erkennung ist kein amtlicher Abgleich:** Erkanntes Hersteller/Modell wird nur gegen eine
+  kuratierte Liste (`lib/vehicleData.ts`, ca. 32 Marken) abgeglichen; bei Nichttreffer wird automatisch
+  "Sonstiger Hersteller"/"Sonstiges Modell" gewählt und der roh erkannte Text separat angezeigt - der
+  Nutzer sollte die Felder immer kurz prüfen.
 - **Kein Monitoring/Alerting** bei Fehlern oder ungewöhnlich hohem Verbrauch – im Anthropic-Dashboard
   gelegentlich manuell prüfen oder ein Ausgaben-Limit im Anthropic-Konto setzen.
 
@@ -105,19 +155,28 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
    `analysis_status: "insufficient_images"` mit konkreten Foto-Wünschen
 5. Kein `ANTHROPIC_API_KEY` gesetzt bzw. ungültiger Key → erwartet: Fehlerzustand mit der definierten
    Fehlermeldung, kein Absturz der Seite
+6. Echtes Fahrzeugschein-Foto hochladen → erwartet: Hersteller/Modell/Baujahr werden übernommen, Halter-
+   und Kennzeichendaten tauchen nirgends im Ergebnis oder in Logs auf
+7. 15-20 Fotos gleichzeitig hochladen → erwartet: Analyse läuft durch oder zeigt bei Zeit-/Größenlimit eine
+   verständliche Fehlermeldung, nie eine weiße/abgestürzte Seite
+8. Reparaturkostenspanne mit `COST_ESTIMATE_MULTIPLIER=1` in `.env.local` vs. Standard `1.5` vergleichen,
+   um die Kalibrierung sichtbar zu machen
 
 ## Ordnerstruktur
 
 ```
 app/
-  page.tsx              Hero + 3 Schritte + Wizard
-  api/analyze/route.ts  Server-Route: Validierung, EXIF-Entfernung, KI-Aufruf
+  page.tsx                      Hero + 3 Schritte + Wizard
+  error.tsx / global-error.tsx  Fehlerseiten statt Absturz bei unerwarteten Fehlern
+  api/analyze/route.ts          Server-Route: Validierung, EXIF-Entfernung, KI-Aufruf, Kostenkalibrierung
+  api/extract-vehicle/route.ts  Server-Route: Fahrzeugschein auslesen (nur Hersteller/Modell/Baujahr)
 components/
   DamageWizard.tsx       Der eigentliche Ablauf (Upload → Daten → Einwilligung → Ergebnis)
 lib/
-  schema.ts              Zod-Schemas (Ergebnis-Struktur, Fahrzeugdaten)
-  prompt.ts               System-Prompt mit den konservativen KI-Regeln
-  compressImage.ts        Client-seitige Bildverkleinerung vor Upload
+  schema.ts              Zod-Schemas (Ergebnis-Struktur, Fahrzeugdaten, Limits)
+  prompt.ts              System-Prompts (Schadenanalyse + Fahrzeugschein-Extraktion)
+  vehicleData.ts         Kuratierte Hersteller/Modell-Liste, Baujahr-Optionen
+  compressImage.ts       Client-seitige Bildverkleinerung vor Upload
 ```
 
 _Automatisch verbunden mit Vercel via GitHub._

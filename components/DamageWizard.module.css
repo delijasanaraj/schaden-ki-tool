@@ -104,6 +104,25 @@
   font-weight: 700;
 }
 
+.registrationBox {
+  background: var(--color-light);
+  border: 1px dashed #c7d6e0;
+  border-radius: var(--radius-m);
+  padding: 16px;
+  margin-bottom: 22px;
+}
+
+.registrationLabel {
+  cursor: pointer;
+}
+
+.registrationSuccess {
+  color: #1a7a3d;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 8px 0 0;
+}
+
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -54,7 +54,25 @@ export const vehicleDataSchema = z.object({
 
 export type VehicleData = z.infer<typeof vehicleDataSchema>;
 
-export const MAX_IMAGES = 8;
+export const MAX_IMAGES = 20;
 export const MIN_IMAGES = 1;
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const ACCEPTED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Vercel-Funktionen haben ein hartes Limit fuer die Groesse des Request-Bodys
+// (Hobby/Pro: 4.5 MB). Client-seitig wird die Gesamtgroesse aller Fotos vor dem
+// Absenden dagegen geprueft, um einen unklaren Server-Fehler zu vermeiden.
+export const MAX_TOTAL_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+export const vehicleExtractionSchema = z.object({
+  found: z
+    .boolean()
+    .describe("false, wenn auf dem Bild kein Fahrzeugschein/Zulassungsbescheinigung erkennbar ist"),
+  make: z.string().describe("Fahrzeughersteller laut Feld D.1, leerer String wenn nicht lesbar"),
+  model: z.string().describe("Fahrzeugmodell/Handelsbezeichnung laut Feld D.3, leerer String wenn nicht lesbar"),
+  firstRegistrationYear: z
+    .string()
+    .describe("Jahr der Erstzulassung laut Feld B, nur die 4-stellige Jahreszahl, leerer String wenn nicht lesbar"),
+});
+
+export type VehicleExtractionResult = z.infer<typeof vehicleExtractionSchema>;
