@@ -18,7 +18,7 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
 - Echte KI-Analyse über die Anthropic Claude API (Standard: `claude-opus-5`) mit striktem, validiertem
   JSON-Ergebnis, hohem Analyse-Aufwand (`effort: high`) und Anweisung zu gründlicher, vollständiger
   Schadenserfassung
-- Business-Kalibrierung der Kostenspanne: serverseitiger Aufschlag von standardmäßig +100 % auf die
+- Business-Kalibrierung der Kostenspanne: serverseitiger Aufschlag von standardmäßig +200 % auf die
   von der KI geschätzte Reparaturkostenspanne (Regler: `COST_ESTIMATE_MULTIPLIER`, siehe unten) sowie
   ein geschärfter Prompt, der die Spanne bewusst am oberen realistischen Rand ansetzt (Erfahrungswert:
   Fotobasierte Schätzungen unterschätzen echte Reparaturkosten systematisch) und enger fasst (Ziel:
@@ -102,13 +102,18 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
 - Klären, ob ein Auftragsverarbeitungsvertrag (AVV) mit Anthropic nötig/möglich ist
 - Prüfen, ob ein Impressum auf dieser separaten Domain zusätzlich nötig ist (rechtlich empfehlenswert,
   auch wenn inhaltlich auf stefan-witmaier.de verwiesen wird)
-- Die "+100 % Kalibrierung" auf die Kostenspanne (siehe unten) ist eine bewusste Geschäftsentscheidung des
+- Die "+200 % Kalibrierung" auf die Kostenspanne (siehe unten) ist eine bewusste Geschäftsentscheidung des
   Gutachters, keine unabhängige KI-Aussage mehr - das sollte intern dokumentiert bleiben, auch wenn es dem
   Nutzer gegenüber nicht als "roher KI-Wert + Aufschlag" kommuniziert wird. **Bewusst nicht umgesetzt:**
   eine Formulierung/Framing, die die Schadenssumme gezielt hochtreiben soll, damit sich Nutzer mehr Geld
   aus einer gegnerischen Haftpflichtversicherung erhoffen - das wäre Verbrauchertäuschung und ein
   Haftungsrisiko für den Gutachter selbst. Die Kalibrierung basiert stattdessen auf seiner fachlichen
-  20-Jahre-Erfahrung, dass fotobasierte Schätzungen echte Reparaturkosten strukturell unterschätzen.
+  Praxiserfahrung, dass fotobasierte Schätzungen echte Reparaturkosten strukturell unterschätzen.
+  **Wichtig, unbedingt zeitnah nachholen:** Faktor 3.0 wurde ohne echte Vergleichsdaten (Schätzung vs.
+  tatsächliche Reparaturrechnung) festgelegt, allein auf Basis der fachlichen Einschätzung des Gutachters.
+  Bei einem Testfall führte das zu 5.100-7.800 € für einen von der KI selbst als "mittel" eingestuften
+  Schaden - das ist deutlich, sollte aber sobald wie möglich an 2-3 echten Fällen gegengeprüft werden,
+  damit die Zahl belastbar bleibt und nicht bei echten Kunden als unglaubwürdig auffällt.
 
 ### 5. Vor dem Live-Schalten
 - Mit echten Testfotos in mehreren Szenarien testen (siehe Testfälle unten)
@@ -125,20 +130,22 @@ anzuweisen, sich selbst zu "belügen", wurde das zweigleisig gelöst:
    Sensor-Kalibrierung, Arbeitszeit, Mehrwertsteuer), die Spanne bewusst am oberen realistischen Rand
    ansetzen (statt niedrig zu "ankern") und dabei enger fassen (Zielbreite ca. 30-50 % des Mittelwerts
    statt einer beliebig breiten Spanne wie z.B. 2.000-8.000 EUR).
-2. **Ein serverseitiger Kalibrierungsfaktor** (`COST_ESTIMATE_MULTIPLIER`, Standard `2.0` = +100 %) wird
+2. **Ein serverseitiger Kalibrierungsfaktor** (`COST_ESTIMATE_MULTIPLIER`, Standard `3.0` = +200 %) wird
    danach auf die von der KI gelieferte Spanne angewendet - dokumentiert, nachvollziehbar im Code und
    jederzeit über die Umgebungsvariable nachjustierbar, sobald echte Vergleichsdaten vorliegen. Die KI
    selbst schätzt weiterhin unabhängig und ehrlich; die Kalibrierung ist eine separate, bewusste
-   Geschäftsentscheidung des Gutachters, begründet mit dessen 20-jähriger Praxiserfahrung, dass
+   Geschäftsentscheidung des Gutachters, begründet mit dessen fachlicher Praxiserfahrung, dass
    fotobasierte Schätzungen echte Reparaturkosten strukturell unterschätzen.
 
-**Verifiziert (09.09.2026):** Test mit echtem Schadenfoto (Frontschaden, mittlere Schwere) ergab
-roh 1.800-2.700 EUR von der KI, nach Kalibrierung 3.600-5.400 EUR (Spannbreite 40 % des Mittelwerts).
+**Verifiziert (09.09.2026):**
+- Bei Faktor 2.0: Testfoto (Frontschaden, mittlere Schwere) roh 1.800-2.700 EUR → kalibriert 3.600-5.400 EUR
+- Bei Faktor 3.0 (aktueller Stand): dasselbe Testfoto roh ca. 1.700-2.600 EUR → kalibriert **5.100-7.800 EUR**,
+  obwohl die KI den Schaden weiterhin selbst als "mittel" (nicht "schwer") einstuft
 
-**Empfehlung:** Diesen Faktor nach einigen Wochen echter Nutzung mit tatsächlichen Reparaturrechnungen
-abgleichen und bei Bedarf weiter anpassen, statt ihn dauerhaft auf 2.0 zu belassen. Je mehr echte
-Vergleichsfälle (KI-Schätzung vs. tatsächliche Rechnung) vorliegen, desto präziser lässt sich der Faktor
-setzen - Schätzungen "ins Blaue" weiter zu erhöhen, ohne solche Daten, wird irgendwann unseriös.
+**Empfehlung, möglichst bald umsetzen:** Faktor 3.0 wurde auf Zuruf ohne echte Vergleichsdaten festgelegt.
+Sobald 2-3 reale Fälle mit tatsächlicher Reparaturrechnung vorliegen, den Faktor entsprechend nachjustieren
+(hoch oder runter) statt ihn dauerhaft auf 3.0 zu belassen - eine Zahl, die bei echten Kunden im Vergleich
+zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genauso wie eine zu niedrige.
 
 ## Bekannte technische Grenzen
 
@@ -174,7 +181,7 @@ setzen - Schätzungen "ins Blaue" weiter zu erhöhen, ohne solche Daten, wird ir
    und Kennzeichendaten tauchen nirgends im Ergebnis oder in Logs auf
 7. 15-20 Fotos gleichzeitig hochladen → erwartet: Analyse läuft durch oder zeigt bei Zeit-/Größenlimit eine
    verständliche Fehlermeldung, nie eine weiße/abgestürzte Seite
-8. Reparaturkostenspanne mit `COST_ESTIMATE_MULTIPLIER=1` in `.env.local` vs. Standard `2.0` vergleichen,
+8. Reparaturkostenspanne mit `COST_ESTIMATE_MULTIPLIER=1` in `.env.local` vs. Standard `3.0` vergleichen,
    um die Kalibrierung sichtbar zu machen
 
 ## Ordnerstruktur
