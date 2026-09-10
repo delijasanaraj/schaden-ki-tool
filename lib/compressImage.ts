@@ -1,6 +1,6 @@
 // Verkleinert Fotos im Browser vor dem Upload (schont Datenvolumen des Nutzers
 // und haelt die Anfrage unter typischen Hosting-Limits fuer die Body-Groesse).
-export async function compressImage(file: File, maxEdge = 1600, quality = 0.82): Promise<File> {
+export async function compressImage(file: File, maxEdge = 1400, quality = 0.8): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
   const bitmap = await createImageBitmapSafe(file);

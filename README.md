@@ -16,8 +16,9 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
 - Serverseitige EXIF-Entfernung (inkl. GPS) vor Weiterverarbeitung, per `sharp` - gilt für Schadenfotos
   UND den Fahrzeugschein
 - Echte KI-Analyse über die Anthropic Claude API (Standard: `claude-opus-5`) mit striktem, validiertem
-  JSON-Ergebnis, hohem Analyse-Aufwand (`effort: high`) und Anweisung zu gründlicher, vollständiger
-  Schadenserfassung
+  JSON-Ergebnis und Anweisung zu gründlicher, vollständiger Schadenserfassung. Analyse-Aufwand
+  standardmäßig `medium` (Regler: `ANTHROPIC_EFFORT`) - `high` führte bei mehreren Fotos zu echten
+  Server-Timeouts, siehe "Bekannte technische Grenzen"
 - Business-Kalibrierung der Kostenspanne: serverseitiger Aufschlag von standardmäßig +200 % auf die
   von der KI geschätzte Reparaturkostenspanne (Regler: `COST_ESTIMATE_MULTIPLIER`, siehe unten) sowie
   ein geschärfter Prompt, der die Spanne bewusst am oberen realistischen Rand ansetzt (Erfahrungswert:
@@ -76,14 +77,16 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
 - Auf https://vercel.com mit GitHub/E-Mail registrieren (Free-Tier reicht anfangs)
 - Dieses Projekt in ein eigenes GitHub-Repository pushen
 - In Vercel "Add New Project" → Repository auswählen → Umgebungsvariablen `ANTHROPIC_API_KEY`,
-  `ANTHROPIC_MODEL`, `ANTHROPIC_EXTRACTION_MODEL`, `COST_ESTIMATE_MULTIPLIER`, `RATE_LIMIT_PER_HOUR`
-  im Vercel-Projekt unter "Settings → Environment Variables" eintragen
+  `ANTHROPIC_MODEL`, `ANTHROPIC_EXTRACTION_MODEL`, `ANTHROPIC_EFFORT`, `COST_ESTIMATE_MULTIPLIER`,
+  `RATE_LIMIT_PER_HOUR` im Vercel-Projekt unter "Settings → Environment Variables" eintragen
 - Deploy starten
-- **Wichtig bei mehr Fotos:** Der Vercel-Hobby-Plan (kostenlos) begrenzt Funktionslaufzeiten. Bei vielen
-  Fotos + hohem Analyse-Aufwand kann eine Analyse mehrere zehn Sekunden dauern. Sollte es trotz der
-  Absicherungen in diesem Projekt zu Zeitüberschreitungen kommen, ist ein Wechsel auf den kostenpflichtigen
-  Vercel-Pro-Plan (längere Funktionslaufzeiten konfigurierbar) die nächste sinnvolle Stufe - das würde ich
-  vorher mit dir besprechen, bevor ich es umsetze.
+- **Bestätigtes Limit (10.09.2026):** Dieses Projekt läuft auf dem kostenlosen Vercel-Hobby-Plan, der
+  Funktionen nach **hart 60 Sekunden** abbricht ("Vercel Runtime Timeout Error" in den Logs) - das ist
+  kein Bug, sondern die reale Plattformgrenze. Ein echter Absturz am 10.09. wurde darauf zurückgeführt
+  (mehrere Fotos + `effort: high` brauchten >60s). Behoben durch `effort: medium` als neuen Standard
+  (siehe "Bekannte technische Grenzen"). Sollte es trotzdem wieder zu Zeitüberschreitungen kommen, ist der
+  nächste Schritt ein Wechsel auf den kostenpflichtigen Vercel-Pro-Plan (erlaubt längere Funktionslaufzeiten)
+  - das würde ich vorher mit dir besprechen, bevor ich es umsetze, da es Kosten verursacht.
 
 ### 3. Domain verbinden (optional, später)
 - In Vercel unter "Settings → Domains" z. B. `schaden-check.stefan-witmaier.de` hinzufügen
@@ -153,10 +156,17 @@ zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genau
   ab. Die App verkleinert Fotos deshalb im Browser und prüft die Gesamtgröße vor dem Absenden (siehe
   `MAX_TOTAL_UPLOAD_BYTES` in `lib/schema.ts`) - bei 20 sehr detailreichen Fotos kann es dennoch knapp
   werden, dann bitte einzelne Fotos entfernen.
-- **Funktionslaufzeit:** `maxDuration = 60` Sekunden ist gesetzt; bei vielen Fotos + hohem Analyse-Aufwand
-  kann eine Anfrage mehrere zehn Sekunden dauern. Der clientseitige 70-Sekunden-Timeout fängt ein Hängen
-  ab, zeigt dann aber einen Fehler statt eines Ergebnisses. Bei häufigen Zeitüberschreitungen: Vercel-Plan
-  prüfen (siehe oben) oder Fotoanzahl/Auflösung reduzieren.
+- **Funktionslaufzeit (bestätigter Vorfall 10.09.2026):** Der Vercel-Hobby-Plan bricht Funktionen nach
+  **60 Sekunden hart ab** (`maxDuration = 60`, vom Server erzwungen, nicht nur ein Richtwert). Ein echter
+  Nutzer erlebte dadurch die Fehlerseite, weil mehrere Fotos bei `effort: high` >60s brauchten. Behoben:
+  Analyse-Aufwand auf `medium` reduziert (Regler: `ANTHROPIC_EFFORT`) und Fotos werden serverseitig auf
+  1400px statt 1600px verkleinert - im Test danach 5 Fotos in ~38s, 10 Fotos in ~37s, also mit deutlichem
+  Puffer unter 60s. Bei >10 Fotos zeigt die Oberfläche zusätzlich einen Warnhinweis. Der clientseitige
+  65-Sekunden-Timeout ist nur noch ein Rückfallnetz; bei einem echten Server-Timeout (Status 502/504 oder
+  keine gültige JSON-Antwort) zeigt die App jetzt eine spezifische Meldung ("hat zu lange gedauert") statt
+  der generischen Fehlermeldung. Sollte es trotzdem wieder zu Timeouts kommen: `ANTHROPIC_EFFORT` ist
+  bereits auf dem niedrigsten sinnvollen Wert für gute Qualität - nächster Schritt wäre dann tatsächlich
+  der Vercel-Pro-Plan (siehe oben), nicht eine weitere Prompt-Anpassung.
 - **Ratenbegrenzung ist nur ein Notbehelf:** Die eingebaute Zählung lebt nur im Arbeitsspeicher einer
   einzelnen Serverless-Instanz und wird bei jedem Kaltstart zurückgesetzt. Für echten Schutz vor Missbrauch
   später z. B. Vercel-eigenes Rate-Limiting oder einen Dienst wie Upstash Redis ergänzen.

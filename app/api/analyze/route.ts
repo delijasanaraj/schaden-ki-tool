@@ -24,6 +24,11 @@ const GENERIC_ERROR_MESSAGE =
 
 const client = new Anthropic();
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
+// "high"/"xhigh" erhoehen bei vielen Fotos das Risiko, die harte 60s-Zeitgrenze
+// der Vercel-Funktion zu reissen (siehe Vorfall vom 10.09.2026: echter Nutzer,
+// mehrere Fotos, "Task timed out after 60 seconds" laut Vercel-Logs). "medium"
+// ist laut Anthropic haeufig der beste Kompromiss aus Qualitaet und Tempo.
+const ANALYSIS_EFFORT = (process.env.ANTHROPIC_EFFORT || "medium") as "low" | "medium" | "high" | "xhigh" | "max";
 
 // Business-Kalibrierung auf Wunsch des Gutachters: die rohe KI-Schaetzung liegt
 // laut seiner Erfahrung systematisch zu niedrig. Der Multiplikator wird NACH der
@@ -64,7 +69,7 @@ async function stripExifAndReencode(buffer: Buffer): Promise<Buffer> {
   // alle Metadaten (inkl. GPS) - das Ergebnis enthaelt keine EXIF-Daten mehr.
   return sharp(buffer)
     .rotate()
-    .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+    .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: 82 })
     .toBuffer();
 }
@@ -171,7 +176,7 @@ export async function POST(req: NextRequest) {
       system: SYSTEM_PROMPT,
       output_config: {
         format: betaZodOutputFormat(analysisResultSchema),
-        effort: "high",
+        effort: ANALYSIS_EFFORT,
       },
       messages: [
         {

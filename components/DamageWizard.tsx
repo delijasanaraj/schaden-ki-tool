@@ -140,11 +140,14 @@ export default function DamageWizard() {
     setStep("loading");
     setErrorMessage(null);
 
-    // Schuetzt vor einer haengenden Anfrage (z.B. bei vielen grossen Fotos) -
-    // ohne Timeout blieb die Seite sonst unbegrenzt im Ladezustand haengen,
-    // was als "Absturz" wahrgenommen wurde.
+    // Schuetzt vor einer haengenden Anfrage. Die Vercel-Funktion selbst wird nach
+    // 60s hart vom Server abgebrochen (Plattform-Limit, siehe route.ts) - dieser
+    // Client-Timeout liegt knapp darueber und ist nur ein Rueckfallnetz, falls
+    // die Verbindung aus anderen Gruenden haengen bleibt.
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 70_000);
+    const timeoutId = setTimeout(() => controller.abort(), 65_000);
+    const TIMEOUT_MESSAGE =
+      "Die Analyse hat zu lange gedauert und wurde vom Server abgebrochen. Das passiert eher bei vielen oder sehr großen Fotos. Bitte versuchen Sie es mit weniger Fotos (z. B. 3–6) erneut, oder senden Sie Ihre Fotos direkt über die Kontaktanfrage an den Gutachter.";
 
     try {
       const formData = new FormData();
@@ -152,10 +155,22 @@ export default function DamageWizard() {
       formData.append("vehicleData", JSON.stringify(vehicleData));
 
       const res = await fetch("/api/analyze", { method: "POST", body: formData, signal: controller.signal });
-      const data = await res.json();
 
-      if (!res.ok) {
-        setErrorMessage(data.message || GENERIC_ERROR_MESSAGE);
+      // Bei einem Plattform-seitigen Timeout (z.B. Vercel bricht die Funktion nach
+      // 60s hart ab) liefert der Server keine gueltige JSON-Antwort mehr, sondern
+      // z.B. eine Fehler-HTML-Seite - res.json() wuerde dann werfen. Das getrennt
+      // abfangen, statt es in der generischen Fehlermeldung verschwinden zu lassen.
+      let data: { result?: AnalysisResult; message?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        setErrorMessage(res.status === 504 || res.status === 502 ? TIMEOUT_MESSAGE : GENERIC_ERROR_MESSAGE);
+        setStep("error");
+        return;
+      }
+
+      if (!res.ok || !data?.result) {
+        setErrorMessage(data?.message || GENERIC_ERROR_MESSAGE);
         setStep("error");
         return;
       }
@@ -164,11 +179,7 @@ export default function DamageWizard() {
       setStep("result");
     } catch (err) {
       const isTimeout = err instanceof DOMException && err.name === "AbortError";
-      setErrorMessage(
-        isTimeout
-          ? "Die Analyse hat zu lange gedauert und wurde abgebrochen. Bitte versuchen Sie es mit weniger Fotos erneut, oder kontaktieren Sie den Gutachter direkt."
-          : GENERIC_ERROR_MESSAGE
-      );
+      setErrorMessage(isTimeout ? TIMEOUT_MESSAGE : GENERIC_ERROR_MESSAGE);
       setStep("error");
     } finally {
       clearTimeout(timeoutId);
@@ -298,6 +309,13 @@ export default function DamageWizard() {
           </div>
 
           {fileError && <p className={styles.errorText}>{fileError}</p>}
+
+          {photos.length > 10 && (
+            <p className={styles.warningText}>
+              Bei sehr vielen Fotos kann die Analyse deutlich länger dauern und im Einzelfall abbrechen.
+              Für die meisten Schäden reichen 3–6 aussagekräftige Fotos aus.
+            </p>
+          )}
 
           {photos.length > 0 && (
             <div className={styles.previewGrid}>
