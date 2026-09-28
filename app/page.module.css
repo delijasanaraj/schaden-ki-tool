@@ -8,7 +8,7 @@
 .hero {
   position: relative;
   background: var(--color-black);
-  padding: 40px 20px 150px;
+  padding: 64px 20px 150px;
   color: #fff;
   isolation: isolate;
   overflow: hidden;
@@ -31,8 +31,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.62) 40%, rgba(0, 0, 0, 0.86) 62%, rgba(0, 0, 0, 0.9) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.9) 100%);
+    linear-gradient(90deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.35) 38%, rgba(0, 0, 0, 0.8) 58%, rgba(0, 0, 0, 0.88) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.9) 100%);
   z-index: -1;
 }
 
@@ -43,35 +43,24 @@
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
-  min-height: 420px;
   animation: fadeUp 0.7s ease-out both;
 }
 
 .heroText {
   max-width: 540px;
   align-self: flex-end;
+  gap: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
-.logoLink {
-  display: inline-block;
-  margin-bottom: 40px;
-}
-
-.logo {
-  height: 104px;
-  width: 104px;
-  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
-}
-
 .heroTitle {
   font-size: 46px;
   font-weight: 600;
-  line-height: 1.12;
-  letter-spacing: -0.6px;
-  margin: 0 0 16px;
+  line-height: 1.26;
+  letter-spacing: -0.4px;
+  margin: 0 0 22px;
   text-wrap: balance;
 }
 
@@ -81,18 +70,19 @@
 
 .heroLead {
   font-size: 18px;
+  line-height: 1.7;
   color: #d3d6e0;
-  margin: 0 0 22px;
+  margin: 0 0 26px;
   max-width: 46ch;
 }
 
 .chips {
   list-style: none;
   padding: 0;
-  margin: 0 0 24px;
+  margin: 0 0 30px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 10px 22px;
   font-size: 15px;
   font-weight: 600;
 }
@@ -113,7 +103,7 @@
   gap: 12px;
   color: #fff;
   text-decoration: none;
-  padding: 8px 18px 8px 8px;
+  padding: 10px 20px 10px 10px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -138,6 +128,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 7px;
   line-height: 1.2;
   font-size: 15px;
 }
@@ -152,27 +143,22 @@
   .hero {
     padding: 28px 16px 128px;
   }
+  .hero {
+    padding-top: 230px;
+  }
   .heroPhoto {
-    background-position: 35% 20%;
+    background-size: auto 440px;
+    background-position: 42% 0;
   }
   .hero::after {
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.72) 45%, rgba(0, 0, 0, 0.92) 100%);
-  }
-  .heroInner {
-    min-height: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0px, rgba(0, 0, 0, 0.25) 150px, rgba(0, 0, 0, 0.88) 290px, #000 440px, #000 100%);
   }
   .heroText {
     align-self: flex-start;
   }
-  .logoLink {
-    margin-bottom: 24px;
-  }
-  .logo {
-    height: 76px;
-    width: 76px;
-  }
   .heroTitle {
     font-size: 30px;
+    margin-bottom: 16px;
   }
   .heroLead {
     font-size: 16px;
@@ -249,6 +235,17 @@
   flex-direction: column;
   gap: 14px;
   align-items: flex-start;
+}
+
+.footerLogoLink {
+  display: inline-block;
+}
+
+.footerLogo {
+  width: 96px;
+  height: 96px;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.35);
+  border-radius: 50%;
 }
 
 .footerTitle {

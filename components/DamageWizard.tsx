@@ -277,7 +277,7 @@ export default function DamageWizard() {
             <span>1</span> Hochladen
           </li>
           <li className={step === "details" ? styles.progressActive : ""}>
-            <span>2</span> Prüfen &amp; starten
+            <span>2</span> Prüfen<em className={styles.progressLong}>&nbsp;&amp; starten</em>
           </li>
           <li>
             <span>3</span> Ergebnis

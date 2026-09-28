@@ -22,10 +22,6 @@ export default function Home() {
       <section className={styles.hero}>
         <div className={styles.heroPhoto} style={{ backgroundImage: `url(${HERO_PHOTO_URL})` }} aria-hidden="true" />
         <div className={styles.heroInner}>
-          <a href={SITE_URL} className={styles.logoLink} aria-label="Zur Website von Stefan Witmaier">
-            <img src={LOGO_URL} alt="Witmaier Fahrzeug-Ingenieurbüro" className={styles.logo} />
-          </a>
-
           <div className={styles.heroText}>
           <h1 className={styles.heroTitle}>
             Unfallschaden <span className={styles.accent}>per Foto</span> einschätzen lassen
@@ -64,17 +60,15 @@ export default function Home() {
       <section className={styles.wizardSection} id="tool">
         <div className={styles.wizardWrap}>
           <DamageWizard />
-
-          <div className={styles.contactBlock}>
-            <p className={styles.contactLead}>Lieber direkt mit dem Gutachter sprechen?</p>
-            <ContactButtons />
-          </div>
         </div>
       </section>
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerCol}>
+            <a href={SITE_URL} className={styles.footerLogoLink} aria-label="Zur Website von Stefan Witmaier">
+              <img src={LOGO_URL} alt="Witmaier Fahrzeug-Ingenieurbüro" className={styles.footerLogo} />
+            </a>
             <h2 className={styles.footerTitle}>Sachverständigenbüro Witmaier</h2>
             <nav className={styles.footerNav} aria-label="Website">
               <a href={SITE_URL}>Startseite</a>
