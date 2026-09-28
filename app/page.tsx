@@ -1,65 +1,118 @@
+/* eslint-disable @next/next/no-img-element */
 import DamageWizard from "@/components/DamageWizard";
+import ContactButtons from "@/components/ContactButtons";
+import { CheckIcon, StarIcon } from "@/components/icons";
 import styles from "./page.module.css";
+import {
+  SITE_URL,
+  PHONE_DISPLAY,
+  PHONE_TEL,
+  CONTACT_EMAIL,
+  ADDRESS_LINES,
+  GOOGLE_RATING_TEXT,
+  LOGO_URL,
+  GOOGLE_LOGO_URL,
+  PORTRAIT_URL,
+  HERO_BG_URL,
+} from "@/lib/site";
 
 export default function Home() {
   return (
-    <main>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <span className={styles.logo}>Sachverständigenbüro Witmaier</span>
-          <a className={styles.headerCall} href="tel:+4917699808695">
-            +49 176 998 086 95
-          </a>
-        </div>
-      </header>
-
-      <section className={styles.hero}>
+    <main className={styles.main}>
+      <section className={styles.hero} style={{ backgroundImage: `url(${HERO_BG_URL})` }}>
         <div className={styles.heroInner}>
-          <span className={styles.heroEyebrow}>Schadenssumme in 2 Minuten selbst herausfinden</span>
-          <h1 className={styles.heroTitle}>Fahrzeugschaden in wenigen Schritten einschätzen lassen</h1>
-          <p className={styles.heroLead}>
-            Laden Sie einige aussagekräftige Fotos hoch und ergänzen Sie bei Bedarf Angaben zu Ihrem
-            Fahrzeug und zum Unfall. Anschließend erhalten Sie eine unverbindliche KI-gestützte
-            Ersteinschätzung der sichtbar erkennbaren Beschädigungen.
-          </p>
-        </div>
-      </section>
+          <a href={SITE_URL} className={styles.logoLink} aria-label="Zur Website von Stefan Witmaier">
+            <img src={LOGO_URL} alt="Witmaier Fahrzeug-Ingenieurbüro" className={styles.logo} />
+          </a>
 
-      <section className={styles.steps}>
-        <div className={styles.stepsInner}>
-          <div className={styles.stepCard}>
-            <span className={styles.stepNumber}>1</span>
-            <h3>Schaden fotografieren</h3>
-            <p>Fahrzeug, Schaden aus mehreren Blickwinkeln und Detailaufnahmen.</p>
-          </div>
-          <div className={styles.stepCard}>
-            <span className={styles.stepNumber}>2</span>
-            <h3>Angaben ergänzen</h3>
-            <p>Optionale Fahrzeugdaten und eine kurze Unfallbeschreibung.</p>
-          </div>
-          <div className={styles.stepCard}>
-            <span className={styles.stepNumber}>3</span>
-            <h3>Ersteinschätzung erhalten</h3>
-            <p>Verständliche Auswertung mit klaren Grenzen und nächsten Schritten.</p>
-          </div>
+          <h1 className={styles.heroTitle}>
+            Unfallschaden <span className={styles.accent}>per Foto</span> einschätzen lassen
+          </h1>
+          <p className={styles.heroLead}>
+            Fahrzeugschein und Fotos hochladen, in wenigen Minuten erhalten Sie eine unverbindliche
+            KI-Ersteinschätzung.
+          </p>
+
+          <ul className={styles.chips}>
+            <li><CheckIcon /> Kostenlos</li>
+            <li><CheckIcon /> Keine Registrierung</li>
+            <li><CheckIcon /> Unverbindlich</li>
+          </ul>
+
+          <a
+            className={styles.rating}
+            href={SITE_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img src={GOOGLE_LOGO_URL} alt="Google" className={styles.googleLogo} />
+            <span className={styles.ratingText}>
+              <span className={styles.stars} aria-label="5 von 5 Sternen">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <StarIcon key={i} size={17} />
+                ))}
+              </span>
+              <strong>{GOOGLE_RATING_TEXT}</strong>
+            </span>
+          </a>
         </div>
       </section>
 
       <section className={styles.wizardSection} id="tool">
-        <DamageWizard />
+        <div className={styles.wizardWrap}>
+          <DamageWizard />
+
+          <div className={styles.contactBlock}>
+            <p className={styles.contactLead}>Lieber direkt mit dem Gutachter sprechen?</p>
+            <ContactButtons />
+          </div>
+        </div>
       </section>
 
       <footer className={styles.footer}>
-        <p>
-          Sachverständigenbüro Witmaier · Sophie-Scholl-Str. 5, 71691 Freiberg am Neckar ·{" "}
-          <a href="mailto:keo.kontakt@gmail.com">keo.kontakt@gmail.com</a>
-        </p>
-        <p className={styles.footerSmall}>
-          Diese Seite ist ein ergänzendes Analyse-Tool zu{" "}
-          <a href="https://stefan-witmaier.de" target="_blank" rel="noreferrer">
-            stefan-witmaier.de
-          </a>
-          . Es gelten die dort veröffentlichte Datenschutzerklärung und das Impressum entsprechend.
+        <div className={styles.footerInner}>
+          <div className={styles.footerCol}>
+            <h2 className={styles.footerTitle}>Sachverständigenbüro Witmaier</h2>
+            <nav className={styles.footerNav} aria-label="Website">
+              <a href={SITE_URL}>Startseite</a>
+              <a href={SITE_URL}>Leistungen</a>
+              <a href={SITE_URL}>Bewertungen</a>
+              <a href={SITE_URL}>Über mich</a>
+              <a href={SITE_URL}>FAQ&apos;s</a>
+            </nav>
+          </div>
+
+          <div className={styles.footerCol}>
+            <h2 className={styles.footerTitle}>Kontakt</h2>
+            <div className={styles.person}>
+              <img src={PORTRAIT_URL} alt="Stefan Witmaier" className={styles.portrait} />
+              <div>
+                <strong>Stefan Witmaier</strong>
+                <span>Ihr Kfz-Sachverständiger</span>
+              </div>
+            </div>
+            <p className={styles.footerMuted}>
+              {ADDRESS_LINES[0]}
+              <br />
+              {ADDRESS_LINES[1]}
+            </p>
+            <p className={styles.footerMuted}>{CONTACT_EMAIL}</p>
+            <a className={styles.footerPhone} href={PHONE_TEL}>
+              {PHONE_DISPLAY}
+            </a>
+          </div>
+
+          <div className={styles.footerCol}>
+            <h2 className={styles.footerTitle}>Infos</h2>
+            <nav className={styles.footerNav} aria-label="Rechtliches">
+              <a href={`${SITE_URL}/impressum`}>Impressum</a>
+              <a href={`${SITE_URL}/datenschutz`}>Datenschutz</a>
+            </nav>
+            <ContactButtons compact />
+          </div>
+        </div>
+        <p className={styles.footerNote}>
+          Die KI-Ersteinschätzung ist ein Zusatzangebot zu stefan-witmaier.de und ersetzt kein Gutachten.
         </p>
       </footer>
     </main>
