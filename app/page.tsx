@@ -13,18 +13,20 @@ import {
   LOGO_URL,
   GOOGLE_LOGO_URL,
   PORTRAIT_URL,
-  HERO_BG_URL,
+  HERO_PHOTO_URL,
 } from "@/lib/site";
 
 export default function Home() {
   return (
     <main className={styles.main}>
-      <section className={styles.hero} style={{ backgroundImage: `url(${HERO_BG_URL})` }}>
+      <section className={styles.hero}>
+        <div className={styles.heroPhoto} style={{ backgroundImage: `url(${HERO_PHOTO_URL})` }} aria-hidden="true" />
         <div className={styles.heroInner}>
           <a href={SITE_URL} className={styles.logoLink} aria-label="Zur Website von Stefan Witmaier">
             <img src={LOGO_URL} alt="Witmaier Fahrzeug-Ingenieurbüro" className={styles.logo} />
           </a>
 
+          <div className={styles.heroText}>
           <h1 className={styles.heroTitle}>
             Unfallschaden <span className={styles.accent}>per Foto</span> einschätzen lassen
           </h1>
@@ -55,6 +57,7 @@ export default function Home() {
               <strong>{GOOGLE_RATING_TEXT}</strong>
             </span>
           </a>
+          </div>
         </div>
       </section>
 

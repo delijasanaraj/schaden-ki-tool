@@ -317,6 +317,9 @@ export default function DamageWizard() {
                   {registrationDetected ? "Erkannt, tippen zum Ersetzen" : "Optional · füllt Fahrzeugdaten aus"}
                 </span>
               </span>
+              {!registrationDetected && !registrationExtracting && (
+                <span className={`${styles.tileCta} ${styles.tileCtaLight}`}>Foto auswählen</span>
+              )}
             </label>
 
             {/* Schadenfotos */}
@@ -354,8 +357,11 @@ export default function DamageWizard() {
                 <span>
                   {photos.length > 0
                     ? `${photos.length} von max. ${MAX_IMAGES} Fotos · weitere hinzufügen`
-                    : "Tippen oder Fotos hierher ziehen · empfohlen 3–6"}
+                    : "Empfohlen 3–6 Fotos · auch per Drag & Drop"}
                 </span>
+              </span>
+              <span className={styles.tileCta}>
+                <CameraIcon size={18} /> {photos.length > 0 ? "Weitere Fotos" : "Fotos auswählen"}
               </span>
             </div>
           </div>

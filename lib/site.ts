@@ -16,4 +16,5 @@ export const GOOGLE_RATING_TEXT = "5/5 Google (130+ Bewertungen)";
 export const LOGO_URL = "https://onecdn.io/media/bf827393-1ce6-47d1-965e-5620120b518b/md2x";
 export const GOOGLE_LOGO_URL = "https://onecdn.io/media/e1966a51-0997-4dd3-8b08-e2f2d338c19b/preview";
 export const PORTRAIT_URL = "https://onecdn.io/media/bc2fdd44-89a9-480c-b93b-1887f3010856/preview";
-export const HERO_BG_URL = "https://onecdn.io/media/c8fd2bc9-9b58-49fd-80ca-300ffc7f955b/preview";
+// Foto von Stefan Witmaier am Fahrzeug (Hero-Hintergrund)
+export const HERO_PHOTO_URL = "https://onecdn.io/media/f7d0befe-cbed-4341-bdd1-74df7121e5e0/preview";
