@@ -185,7 +185,7 @@
 }
 
 .wizardWrap {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -242,8 +242,8 @@
 }
 
 .footerLogo {
-  width: 96px;
-  height: 96px;
+  width: 80px;
+  height: 80px;
   box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.35);
   border-radius: 50%;
 }

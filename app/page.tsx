@@ -24,7 +24,7 @@ export default function Home() {
         <div className={styles.heroInner}>
           <div className={styles.heroText}>
           <h1 className={styles.heroTitle}>
-            Unfallschaden <span className={styles.accent}>per Foto</span> einschätzen lassen
+            Unfallschaden <span className={styles.accent}>per Foto mit KI</span> einschätzen lassen
           </h1>
           <p className={styles.heroLead}>
             Fahrzeugschein und Fotos hochladen, in wenigen Minuten erhalten Sie eine unverbindliche
@@ -74,8 +74,6 @@ export default function Home() {
               <a href={SITE_URL}>Startseite</a>
               <a href={SITE_URL}>Leistungen</a>
               <a href={SITE_URL}>Bewertungen</a>
-              <a href={SITE_URL}>Über mich</a>
-              <a href={SITE_URL}>FAQ&apos;s</a>
             </nav>
           </div>
 
@@ -88,11 +86,7 @@ export default function Home() {
                 <span>Ihr Kfz-Sachverständiger</span>
               </div>
             </div>
-            <p className={styles.footerMuted}>
-              {ADDRESS_LINES[0]}
-              <br />
-              {ADDRESS_LINES[1]}
-            </p>
+            <p className={styles.footerMuted}>{ADDRESS_LINES[1]}</p>
             <p className={styles.footerMuted}>{CONTACT_EMAIL}</p>
             <a className={styles.footerPhone} href={PHONE_TEL}>
               {PHONE_DISPLAY}

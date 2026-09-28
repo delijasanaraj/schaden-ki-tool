@@ -64,6 +64,10 @@
   }
 }
 
+.progressLabel {
+  font-weight: inherit;
+}
+
 .progressLong {
   font-style: normal;
 }
@@ -84,10 +88,10 @@
   background: var(--color-white);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-card);
-  padding: 28px;
+  padding: 36px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 @media (max-width: 640px) {
@@ -160,7 +164,7 @@
   background: var(--color-light);
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
-  min-height: 240px;
+  min-height: 290px;
 }
 
 .tile:hover,
@@ -206,8 +210,8 @@
 
 .tileIcon {
   flex: none;
-  width: 68px;
-  height: 68px;
+  width: 76px;
+  height: 76px;
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -231,13 +235,13 @@
 }
 
 .tileText strong {
-  font-size: 19px;
+  font-size: 21px;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .tileText span {
-  font-size: 14px;
+  font-size: 15px;
   color: #6b6f82;
 }
 
