@@ -14,29 +14,25 @@
   overflow: hidden;
 }
 
-/* Foto von Stefan Witmaier, rechts, weich in den schwarzen Hintergrund ausgeblendet */
+/* Foto von Stefan Witmaier als Hintergrund der ersten Sektion */
 .heroPhoto {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(62%, 900px);
+  inset: 0;
   background-size: cover;
-  background-position: center 22%;
+  background-position: 30% 30%;
   background-repeat: no-repeat;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 42%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 42%);
   z-index: -2;
-  animation: photoIn 1.2s ease-out both;
+  animation: photoIn 1.4s ease-out both;
 }
 
+/* Abdunklung: links leichter (Herr Witmaier bleibt sichtbar), rechts hinter dem Text kraeftiger */
 .hero::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 60%, rgba(0, 0, 0, 0.05) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.85) 100%);
+    linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.62) 40%, rgba(0, 0, 0, 0.86) 62%, rgba(0, 0, 0, 0.9) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.9) 100%);
   z-index: -1;
 }
 
@@ -47,11 +43,13 @@
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
+  min-height: 420px;
   animation: fadeUp 0.7s ease-out both;
 }
 
 .heroText {
-  max-width: 560px;
+  max-width: 540px;
+  align-self: flex-end;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -63,8 +61,9 @@
 }
 
 .logo {
-  height: 72px;
-  width: auto;
+  height: 104px;
+  width: 104px;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
 }
 
 .heroTitle {
@@ -154,20 +153,23 @@
     padding: 28px 16px 128px;
   }
   .heroPhoto {
-    width: 100%;
-    opacity: 0.45;
-    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
-    background-position: 70% 15%;
+    background-position: 35% 20%;
   }
   .hero::after {
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.72) 45%, rgba(0, 0, 0, 0.92) 100%);
+  }
+  .heroInner {
+    min-height: 0;
+  }
+  .heroText {
+    align-self: flex-start;
   }
   .logoLink {
     margin-bottom: 24px;
   }
   .logo {
-    height: 56px;
+    height: 76px;
+    width: 76px;
   }
   .heroTitle {
     font-size: 30px;
@@ -296,11 +298,11 @@
 }
 
 .portrait {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  object-position: center 20%;
+  border: 2px solid var(--color-gold);
 }
 
 .footerMuted {
