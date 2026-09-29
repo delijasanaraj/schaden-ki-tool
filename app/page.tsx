@@ -35,6 +35,7 @@ export default function Home() {
             <li><CheckIcon /> Kostenlos</li>
             <li><CheckIcon /> Keine Registrierung</li>
             <li><CheckIcon /> Unverbindlich</li>
+            <li><CheckIcon /> Schnell</li>
           </ul>
 
           <a
