@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { track } from "@vercel/analytics";
 import styles from "./DamageWizard.module.css";
+import ContactButtons from "./ContactButtons";
+import { ArrowIcon, CameraIcon, CheckIcon, DocumentIcon } from "./icons";
 import { compressImage } from "@/lib/compressImage";
 import {
   MAX_IMAGES,
@@ -14,11 +16,12 @@ import {
   type VehicleExtractionResult,
 } from "@/lib/schema";
 import { CAR_MAKES, CAR_MODELS, getYearOptions } from "@/lib/vehicleData";
+import { CONTACT_EMAIL, PHONE_TEL, SITE_URL, WHATSAPP_NUMBER_LINK } from "@/lib/site";
 
 const GENERIC_ERROR_MESSAGE =
-  "Die Analyse konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es erneut oder senden Sie Ihre Fotos direkt über die Kontaktanfrage an den Gutachter.";
+  "Die Analyse konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es erneut oder rufen Sie den Gutachter direkt an.";
 
-type Step = "upload" | "details" | "consent" | "loading" | "result" | "error";
+type Step = "upload" | "details" | "loading" | "result" | "error";
 
 type Photo = { id: string; file: File; previewUrl: string };
 
@@ -28,11 +31,6 @@ const LOADING_MESSAGES = [
   "Erkennbare Beschädigungen werden zusammengefasst …",
   "Ihre unverbindliche Ersteinschätzung wird erstellt …",
 ];
-
-const PHONE_DISPLAY = "+49 176 998 086 95";
-const PHONE_TEL = "tel:+4917699808695";
-const WHATSAPP_LINK = "https://wa.me/4917699808695";
-const CONTACT_EMAIL = "keo.kontakt@gmail.com";
 
 const DAMAGE_AREAS = [
   "Fahrzeugfront",
@@ -60,7 +58,9 @@ export default function DamageWizard() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Datenschutzfreundliche Nutzungsstatistik (Vercel Analytics) - zaehlt nur
   // anonyme Ereignisse, keine Fotos/Namen/Kontaktdaten. Gibt dem Gutachter eine
@@ -76,6 +76,17 @@ export default function DamageWizard() {
     }, 2200);
     return () => clearInterval(interval);
   }, [step]);
+
+  // Beim Schrittwechsel zum Kartenanfang scrollen, damit man nicht mitten im Formular landet
+  const goTo = (next: Step) => {
+    setStep(next);
+    requestAnimationFrame(() => {
+      const el = cardRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 16;
+      if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
+    });
+  };
 
   const addFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -116,7 +127,7 @@ export default function DamageWizard() {
       }
       if (sizeBlocked) {
         setFileError(
-          "Die Fotos sind zusammen zu groß für eine Übertragung. Es wurden nur die ersten Fotos übernommen - bitte entfernen Sie ggf. einige oder verwenden Sie kleinere Dateien."
+          "Die Fotos sind zusammen zu groß. Es wurden nur die ersten Fotos übernommen. Bitte entfernen Sie ggf. einige oder verwenden Sie kleinere Dateien."
         );
       } else if (incoming.length > room) {
         setFileError(`Es wurden nur ${room} weitere Fotos übernommen (maximal ${MAX_IMAGES} insgesamt).`);
@@ -133,8 +144,6 @@ export default function DamageWizard() {
     });
   };
 
-  const [isDragging, setIsDragging] = useState(false);
-
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
@@ -146,18 +155,17 @@ export default function DamageWizard() {
   const submitAnalysis = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
-    setStep("loading");
+    goTo("loading");
     setErrorMessage(null);
     track("Analyse gestartet", { fotoAnzahl: photos.length });
 
     // Schuetzt vor einer haengenden Anfrage. Die Vercel-Funktion selbst wird nach
     // 60s hart vom Server abgebrochen (Plattform-Limit, siehe route.ts) - dieser
-    // Client-Timeout liegt knapp darueber und ist nur ein Rueckfallnetz, falls
-    // die Verbindung aus anderen Gruenden haengen bleibt.
+    // Client-Timeout liegt knapp darueber und ist nur ein Rueckfallnetz.
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65_000);
     const TIMEOUT_MESSAGE =
-      "Die Analyse hat zu lange gedauert und wurde vom Server abgebrochen. Das passiert eher bei vielen oder sehr großen Fotos. Bitte versuchen Sie es mit weniger Fotos (z. B. 3–6) erneut, oder senden Sie Ihre Fotos direkt über die Kontaktanfrage an den Gutachter.";
+      "Die Analyse hat zu lange gedauert und wurde abgebrochen. Das passiert eher bei vielen oder sehr großen Fotos. Bitte versuchen Sie es mit weniger Fotos (z. B. 3–6) erneut oder rufen Sie den Gutachter direkt an.";
 
     try {
       const formData = new FormData();
@@ -166,35 +174,32 @@ export default function DamageWizard() {
 
       const res = await fetch("/api/analyze", { method: "POST", body: formData, signal: controller.signal });
 
-      // Bei einem Plattform-seitigen Timeout (z.B. Vercel bricht die Funktion nach
-      // 60s hart ab) liefert der Server keine gueltige JSON-Antwort mehr, sondern
-      // z.B. eine Fehler-HTML-Seite - res.json() wuerde dann werfen. Das getrennt
-      // abfangen, statt es in der generischen Fehlermeldung verschwinden zu lassen.
+      // Bei einem Plattform-Timeout kommt keine gueltige JSON-Antwort zurueck.
       let data: { result?: AnalysisResult; message?: string } | null = null;
       try {
         data = await res.json();
       } catch {
         track("Analyse fehlgeschlagen", { grund: res.status === 504 || res.status === 502 ? "timeout" : "fehler" });
         setErrorMessage(res.status === 504 || res.status === 502 ? TIMEOUT_MESSAGE : GENERIC_ERROR_MESSAGE);
-        setStep("error");
+        goTo("error");
         return;
       }
 
       if (!res.ok || !data?.result) {
         track("Analyse fehlgeschlagen", { grund: "fehler" });
         setErrorMessage(data?.message || GENERIC_ERROR_MESSAGE);
-        setStep("error");
+        goTo("error");
         return;
       }
 
       track("Analyse erfolgreich", { fotoAnzahl: photos.length });
       setResult(data.result);
-      setStep("result");
+      goTo("result");
     } catch (err) {
       const isTimeout = err instanceof DOMException && err.name === "AbortError";
       track("Analyse fehlgeschlagen", { grund: isTimeout ? "timeout" : "fehler" });
       setErrorMessage(isTimeout ? TIMEOUT_MESSAGE : GENERIC_ERROR_MESSAGE);
-      setStep("error");
+      goTo("error");
     } finally {
       clearTimeout(timeoutId);
       setSubmitting(false);
@@ -222,7 +227,7 @@ export default function DamageWizard() {
 
       if (!res.ok || !data.result?.found) {
         setRegistrationError(
-          data.message || "Es konnten keine Fahrzeugdaten erkannt werden. Bitte tragen Sie die Angaben manuell ein."
+          data.message || "Es konnten keine Fahrzeugdaten erkannt werden. Sie können die Angaben im nächsten Schritt eintragen."
         );
         return;
       }
@@ -247,13 +252,10 @@ export default function DamageWizard() {
       const detectedLabel = [extracted.make, extracted.model, extracted.firstRegistrationYear]
         .filter(Boolean)
         .join(" · ");
-      setRegistrationDetected(
-        detectedLabel ? `Erkannt: ${detectedLabel} - bitte unten prüfen.` : "Es konnten keine Angaben erkannt werden."
-      );
+      setRegistrationDetected(detectedLabel || null);
+      if (!detectedLabel) setRegistrationError("Es konnten keine Angaben erkannt werden.");
     } catch {
-      setRegistrationError(
-        "Der Fahrzeugschein konnte nicht ausgelesen werden. Bitte tragen Sie die Angaben manuell ein."
-      );
+      setRegistrationError("Der Fahrzeugschein konnte nicht ausgelesen werden. Sie können die Angaben im nächsten Schritt eintragen.");
     } finally {
       setRegistrationExtracting(false);
     }
@@ -279,59 +281,109 @@ export default function DamageWizard() {
   const mailtoHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
     "Anfrage über KI-Schadeneinschätzung"
   )}&body=${encodeURIComponent(contactSummary)}`;
-  const whatsappHref = `${WHATSAPP_LINK}?text=${encodeURIComponent(contactSummary)}`;
+  const whatsappHref = `${WHATSAPP_NUMBER_LINK}?text=${encodeURIComponent(contactSummary)}`;
+
+  const photosMissing = Math.max(0, MIN_IMAGES - photos.length);
 
   return (
-    <div className={styles.wizard}>
-      {step === "upload" && (
-        <section className={styles.card}>
-          <h2 className={styles.stepTitle}>1. Fotos hochladen</h2>
-          <p className={styles.helpText}>
-            Für eine bessere Einschätzung fotografieren Sie bitte das gesamte Fahrzeug, den Schaden aus
-            mehreren Blickwinkeln und nach Möglichkeit ein bis zwei Detailaufnahmen. Achten Sie auf gute
-            Beleuchtung. Bitte fotografieren Sie nach Möglichkeit keine Personen und keine unnötigen
-            persönlichen Daten.
-          </p>
+    <div className={styles.wizard} ref={cardRef}>
+      {(step === "upload" || step === "details") && (
+        <ol className={styles.progress} aria-label="Fortschritt">
+          <li className={styles.progressActive}>
+            <span>1</span> Hochladen
+          </li>
+          <li className={step === "details" ? styles.progressActive : ""}>
+            <span>2</span> <b className={styles.progressLabel}>Prüfen<em className={styles.progressLong}> &amp; starten</em></b>
+          </li>
+          <li>
+            <span>3</span> Ergebnis
+          </li>
+        </ol>
+      )}
 
-          <div
-            className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={onDrop}
-            onClick={() => fileInputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
-            }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              hidden
-              onChange={(e) => e.target.files && addFiles(e.target.files)}
-            />
-            <p>
-              <strong>Fotos hierher ziehen</strong> oder klicken zum Auswählen
-            </p>
-            <p className={styles.dropzoneHint}>
-              JPEG, PNG oder WebP · {photos.length}/{MAX_IMAGES} Fotos · empfohlen 3–6, bis zu {MAX_IMAGES} möglich
-            </p>
+      {step === "upload" && (
+        <section className={`${styles.card} ${styles.enter}`}>
+          <div className={styles.uploadGrid}>
+            {/* Fahrzeugschein */}
+            <label
+              className={`${styles.tile} ${styles.tileSmall} ${registrationDetected ? styles.tileDone : ""}`}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleRegistrationUpload(file);
+                  e.target.value = "";
+                }}
+              />
+              <span className={styles.tileIcon}>
+                {registrationDetected ? <CheckIcon size={22} /> : <DocumentIcon />}
+              </span>
+              <span className={styles.tileText}>
+                <strong>
+                  {registrationExtracting
+                    ? "Wird ausgelesen …"
+                    : registrationDetected
+                    ? registrationDetected
+                    : "Fahrzeugschein"}
+                </strong>
+                <span>
+                  {registrationDetected ? "Erkannt, tippen zum Ersetzen" : "Optional · füllt Fahrzeugdaten aus"}
+                </span>
+              </span>
+              {!registrationDetected && !registrationExtracting && (
+                <span className={`${styles.tileCta} ${styles.tileCtaLight}`}>Foto auswählen</span>
+              )}
+            </label>
+
+            {/* Schadenfotos */}
+            <div
+              className={`${styles.tile} ${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                hidden
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <span className={styles.tileIcon}>
+                <CameraIcon />
+              </span>
+              <span className={styles.tileText}>
+                <strong>Schadenfotos hochladen</strong>
+                <span>
+                  {photos.length > 0
+                    ? `${photos.length} von max. ${MAX_IMAGES} Fotos · weitere hinzufügen`
+                    : "Empfohlen 3–6 Fotos · auch per Drag & Drop"}
+                </span>
+              </span>
+              <span className={styles.tileCta}>
+                <CameraIcon size={18} /> {photos.length > 0 ? "Weitere Fotos" : "Fotos auswählen"}
+              </span>
+            </div>
           </div>
 
+          {registrationError && <p className={styles.errorText}>{registrationError}</p>}
           {fileError && <p className={styles.errorText}>{fileError}</p>}
-
-          {photos.length > 10 && (
-            <p className={styles.warningText}>
-              Bei sehr vielen Fotos kann die Analyse deutlich länger dauern und im Einzelfall abbrechen.
-              Für die meisten Schäden reichen 3–6 aussagekräftige Fotos aus.
-            </p>
-          )}
 
           {photos.length > 0 && (
             <div className={styles.previewGrid}>
@@ -352,66 +404,41 @@ export default function DamageWizard() {
             </div>
           )}
 
-          <ul className={styles.trustList}>
-            <li>Keine Registrierung erforderlich</li>
-            <li>Einfache Fotoanalyse</li>
-            <li>Unverbindliche Ersteinschätzung</li>
-            <li>Persönliche Prüfung durch einen Kfz-Gutachter möglich</li>
-          </ul>
+          {photos.length > 10 && (
+            <p className={styles.warningText}>
+              Bei sehr vielen Fotos dauert die Analyse länger. Meist reichen 3–6 aussagekräftige Fotos.
+            </p>
+          )}
 
-          <div className={styles.disclaimerBox}>
-            Die Online-Analyse ersetzt weder ein Gutachten noch einen Kostenvoranschlag. Verdeckte oder
-            sicherheitsrelevante Schäden können auf Fotos möglicherweise nicht erkannt werden.
-          </div>
+          <p className={styles.tip}>
+            <strong>Tipp:</strong> ganzes Fahrzeug, Schaden aus mehreren Winkeln und 1–2 Nahaufnahmen.
+          </p>
 
-          <div className={styles.actionsRow}>
-            <button
-              type="button"
-              className={styles.primaryBtn}
-              disabled={photos.length < MIN_IMAGES}
-              onClick={() => setStep("details")}
-            >
-              Weiter
-            </button>
-          </div>
+          <button
+            type="button"
+            className={styles.goldBtn}
+            disabled={photos.length < MIN_IMAGES || registrationExtracting}
+            onClick={() => goTo("details")}
+          >
+            <span>
+              {photosMissing > 0
+                ? `Noch ${photosMissing} Foto${photosMissing > 1 ? "s" : ""} hochladen`
+                : registrationExtracting
+                ? "Fahrzeugschein wird ausgelesen …"
+                : "Weiter zur Analyse"}
+            </span>
+            <ArrowIcon />
+          </button>
         </section>
       )}
 
       {step === "details" && (
-        <section className={styles.card}>
-          <h2 className={styles.stepTitle}>2. Angaben zum Fahrzeug (optional)</h2>
-          <p className={styles.helpText}>
-            Diese Angaben sind freiwillig, helfen der KI aber bei der Einschätzung. Bitte geben Sie keine
-            unnötigen personenbezogenen Daten ein.
-          </p>
+        <section className={`${styles.card} ${styles.enter}`}>
+          <h2 className={styles.stepTitle}>Fahrzeug prüfen</h2>
 
-          <div className={styles.registrationBox}>
-            <label className={styles.registrationLabel}>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                hidden
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleRegistrationUpload(file);
-                  e.target.value = "";
-                }}
-              />
-              <span className={styles.secondaryBtn}>
-                {registrationExtracting ? "Wird ausgelesen …" : "Fahrzeugschein hochladen (optional)"}
-              </span>
-            </label>
-            <p className={styles.smallNote}>
-              Füllt Hersteller, Modell und Baujahr automatisch aus. Wird ausschließlich dafür verwendet und
-              nicht gespeichert - Name, Anschrift und Kennzeichen werden nicht ausgelesen.
-            </p>
-            {registrationDetected && <p className={styles.registrationSuccess}>{registrationDetected}</p>}
-            {registrationError && <p className={styles.errorText}>{registrationError}</p>}
-          </div>
-
-          <div className={styles.formGrid}>
+          <div className={styles.formGrid3}>
             <label className={styles.field}>
-              <span>Fahrzeughersteller</span>
+              <span>Hersteller</span>
               <select
                 value={vehicleData.make || ""}
                 onChange={(e) => setVehicleData((v) => ({ ...v, make: e.target.value, model: "" }))}
@@ -425,13 +452,13 @@ export default function DamageWizard() {
               </select>
             </label>
             <label className={styles.field}>
-              <span>Fahrzeugmodell</span>
+              <span>Modell</span>
               <select
                 value={vehicleData.model || ""}
                 disabled={!vehicleData.make}
                 onChange={(e) => setVehicleData((v) => ({ ...v, model: e.target.value }))}
               >
-                <option value="">{vehicleData.make ? "Bitte wählen" : "Zuerst Hersteller wählen"}</option>
+                <option value="">{vehicleData.make ? "Bitte wählen" : "Erst Hersteller"}</option>
                 {(CAR_MODELS[vehicleData.make || ""] || []).map((m) => (
                   <option key={m} value={m}>
                     {m}
@@ -440,7 +467,7 @@ export default function DamageWizard() {
               </select>
             </label>
             <label className={styles.field}>
-              <span>Baujahr / Erstzulassung</span>
+              <span>Erstzulassung</span>
               <select
                 value={vehicleData.firstRegistration || ""}
                 onChange={(e) => setVehicleData((v) => ({ ...v, firstRegistration: e.target.value }))}
@@ -453,104 +480,98 @@ export default function DamageWizard() {
                 ))}
               </select>
             </label>
-            <label className={styles.field}>
-              <span>Kilometerstand</span>
-              <input
-                type="text"
-                value={vehicleData.mileage || ""}
-                onChange={(e) => setVehicleData((v) => ({ ...v, mileage: e.target.value }))}
-              />
-            </label>
-            <label className={styles.field}>
-              <span>Beschädigter Fahrzeugbereich</span>
-              <select
-                value={vehicleData.damageArea || ""}
-                onChange={(e) => setVehicleData((v) => ({ ...v, damageArea: e.target.value }))}
-              >
-                <option value="">Bitte wählen</option>
-                {DAMAGE_AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.field}>
-              <span>Fahrzeug noch fahrbereit?</span>
-              <select
-                value={vehicleData.drivable || ""}
-                onChange={(e) =>
-                  setVehicleData((v) => ({ ...v, drivable: e.target.value as VehicleData["drivable"] }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                <option value="ja">Ja</option>
-                <option value="nein">Nein</option>
-                <option value="nicht sicher">Nicht sicher</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              <span>Airbags ausgelöst?</span>
-              <select
-                value={vehicleData.airbagsDeployed || ""}
-                onChange={(e) =>
-                  setVehicleData((v) => ({
-                    ...v,
-                    airbagsDeployed: e.target.value as VehicleData["airbagsDeployed"],
-                  }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                <option value="ja">Ja</option>
-                <option value="nein">Nein</option>
-                <option value="nicht sicher">Nicht sicher</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              <span>Leuchten Warn-/Kontrollanzeigen?</span>
-              <select
-                value={vehicleData.warningLights || ""}
-                onChange={(e) =>
-                  setVehicleData((v) => ({
-                    ...v,
-                    warningLights: e.target.value as VehicleData["warningLights"],
-                  }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                <option value="ja">Ja</option>
-                <option value="nein">Nein</option>
-                <option value="nicht sicher">Nicht sicher</option>
-              </select>
-            </label>
           </div>
 
-          <label className={styles.field}>
-            <span>Kurze Beschreibung des Unfallhergangs</span>
-            <textarea
-              maxLength={1500}
-              rows={4}
-              placeholder="Bitte beschreiben Sie kurz, wie der Schaden entstanden ist und welche Auffälligkeiten Sie festgestellt haben. Geben Sie hier keine unnötigen personenbezogenen Daten ein."
-              value={vehicleData.description || ""}
-              onChange={(e) => setVehicleData((v) => ({ ...v, description: e.target.value }))}
-            />
-            <span className={styles.charCount}>{(vehicleData.description || "").length}/1500</span>
-          </label>
-
-          <div className={styles.actionsRow}>
-            <button type="button" className={styles.secondaryBtn} onClick={() => setStep("upload")}>
-              Zurück
-            </button>
-            <button type="button" className={styles.primaryBtn} onClick={() => setStep("consent")}>
-              Weiter
-            </button>
-          </div>
-        </section>
-      )}
-
-      {step === "consent" && (
-        <section className={styles.card}>
-          <h2 className={styles.stepTitle}>3. Einwilligung &amp; Start der Analyse</h2>
+          <details className={styles.more}>
+            <summary>Weitere Angaben (optional, verbessert die Einschätzung)</summary>
+            <div className={styles.moreBody}>
+              <div className={styles.formGrid}>
+                <label className={styles.field}>
+                  <span>Beschädigter Bereich</span>
+                  <select
+                    value={vehicleData.damageArea || ""}
+                    onChange={(e) => setVehicleData((v) => ({ ...v, damageArea: e.target.value }))}
+                  >
+                    <option value="">Bitte wählen</option>
+                    {DAMAGE_AREAS.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={styles.field}>
+                  <span>Kilometerstand</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="85.000"
+                    value={vehicleData.mileage || ""}
+                    onChange={(e) => setVehicleData((v) => ({ ...v, mileage: e.target.value }))}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span>Noch fahrbereit?</span>
+                  <select
+                    value={vehicleData.drivable || ""}
+                    onChange={(e) =>
+                      setVehicleData((v) => ({ ...v, drivable: e.target.value as VehicleData["drivable"] }))
+                    }
+                  >
+                    <option value="">Bitte wählen</option>
+                    <option value="ja">Ja</option>
+                    <option value="nein">Nein</option>
+                    <option value="nicht sicher">Nicht sicher</option>
+                  </select>
+                </label>
+                <label className={styles.field}>
+                  <span>Airbags ausgelöst?</span>
+                  <select
+                    value={vehicleData.airbagsDeployed || ""}
+                    onChange={(e) =>
+                      setVehicleData((v) => ({
+                        ...v,
+                        airbagsDeployed: e.target.value as VehicleData["airbagsDeployed"],
+                      }))
+                    }
+                  >
+                    <option value="">Bitte wählen</option>
+                    <option value="ja">Ja</option>
+                    <option value="nein">Nein</option>
+                    <option value="nicht sicher">Nicht sicher</option>
+                  </select>
+                </label>
+                <label className={styles.field}>
+                  <span>Warnleuchten an?</span>
+                  <select
+                    value={vehicleData.warningLights || ""}
+                    onChange={(e) =>
+                      setVehicleData((v) => ({
+                        ...v,
+                        warningLights: e.target.value as VehicleData["warningLights"],
+                      }))
+                    }
+                  >
+                    <option value="">Bitte wählen</option>
+                    <option value="ja">Ja</option>
+                    <option value="nein">Nein</option>
+                    <option value="nicht sicher">Nicht sicher</option>
+                  </select>
+                </label>
+              </div>
+              <label className={styles.field}>
+                <span>Wie ist der Schaden entstanden?</span>
+                <textarea
+                  maxLength={1500}
+                  rows={3}
+                  placeholder="z. B. Beim Ausparken seitlich gegen einen Poller gefahren."
+                  value={vehicleData.description || ""}
+                  onChange={(e) => setVehicleData((v) => ({ ...v, description: e.target.value }))}
+                />
+                <span className={styles.charCount}>{(vehicleData.description || "").length}/1500</span>
+              </label>
+            </div>
+          </details>
 
           <label className={styles.checkboxRow}>
             <input
@@ -559,51 +580,53 @@ export default function DamageWizard() {
               onChange={(e) => setConsentAnalysis(e.target.checked)}
             />
             <span>
-              Ich willige ein, dass meine hochgeladenen Fotos und Angaben zum Zweck der automatisierten
-              Schaden-Ersteinschätzung verarbeitet werden. Mir ist bekannt, dass das Ergebnis unverbindlich
-              ist und kein Gutachten oder Kostenvoranschlag ersetzt. Weitere Informationen finde ich in der
-              Datenschutzerklärung.
+              Ich willige ein, dass meine Fotos und Angaben zur automatisierten Ersteinschätzung verarbeitet
+              werden. Das Ergebnis ist unverbindlich und ersetzt kein Gutachten. Details in der{" "}
+              <a href={`${SITE_URL}/datenschutz`} target="_blank" rel="noreferrer">
+                Datenschutzerklärung
+              </a>
+              .
             </span>
           </label>
 
-          <div className={styles.disclaimerBox}>
-            Die Online-Analyse ersetzt weder ein Gutachten noch einen Kostenvoranschlag. Verdeckte oder
-            sicherheitsrelevante Schäden können auf Fotos möglicherweise nicht erkannt werden.
-          </div>
-
           <div className={styles.actionsRow}>
-            <button type="button" className={styles.secondaryBtn} onClick={() => setStep("details")}>
+            <button type="button" className={styles.backBtn} onClick={() => goTo("upload")}>
               Zurück
             </button>
-            <button type="button" className={styles.primaryBtn} disabled={!canSubmit} onClick={submitAnalysis}>
-              Unverbindliche Ersteinschätzung starten
+            <button type="button" className={styles.goldBtn} disabled={!canSubmit} onClick={submitAnalysis}>
+              <span>{consentAnalysis ? "Ersteinschätzung starten" : "Bitte Einwilligung bestätigen"}</span>
+              <ArrowIcon />
             </button>
           </div>
         </section>
       )}
 
       {step === "loading" && (
-        <section className={styles.card}>
+        <section className={`${styles.card} ${styles.enter}`}>
           <div className={styles.loadingBox}>
-            <div className={styles.spinner} aria-hidden="true" />
-            <p className={styles.loadingText}>{LOADING_MESSAGES[loadingMsgIndex]}</p>
-            <p className={styles.helpText}>
-              Die Auswertung kann einen Moment dauern. Bitte schließen Sie diese Seite nicht.
+            <div className={styles.scanner} aria-hidden="true">
+              <CameraIcon size={40} />
+              <span className={styles.scanLine} />
+            </div>
+            <p className={styles.loadingText} aria-live="polite">
+              {LOADING_MESSAGES[loadingMsgIndex]}
             </p>
+            <p className={styles.helpText}>Das dauert meist unter einer Minute. Bitte Seite geöffnet lassen.</p>
           </div>
         </section>
       )}
 
       {step === "error" && (
-        <section className={styles.card}>
+        <section className={`${styles.card} ${styles.enter}`}>
           <h2 className={styles.stepTitle}>Es gab ein Problem</h2>
           <p className={styles.errorText}>{errorMessage}</p>
           <div className={styles.actionsRow}>
-            <button type="button" className={styles.secondaryBtn} onClick={() => setStep("consent")}>
+            <button type="button" className={styles.backBtn} onClick={() => goTo("details")}>
               Erneut versuchen
             </button>
-            <a className={styles.primaryBtnLink} href={PHONE_TEL}>
-              Stattdessen anrufen
+            <a className={styles.goldBtn} href={PHONE_TEL}>
+              <span>Stattdessen anrufen</span>
+              <ArrowIcon />
             </a>
           </div>
         </section>
@@ -615,10 +638,11 @@ export default function DamageWizard() {
           mailtoHref={mailtoHref}
           whatsappHref={whatsappHref}
           onRestart={() => {
-            setStep("upload");
+            photos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
             setPhotos([]);
             setResult(null);
             setConsentAnalysis(false);
+            goTo("upload");
           }}
         />
       )}
@@ -638,19 +662,19 @@ function ResultView({
   onRestart: () => void;
 }) {
   const confidenceLabel = (c: "low" | "medium" | "high") =>
-    c === "high" ? "auf dem Foto deutlich erkennbar" : c === "medium" ? "wahrscheinlich erkennbar" : "nicht sicher beurteilbar";
+    c === "high" ? "deutlich erkennbar" : c === "medium" ? "wahrscheinlich" : "nicht sicher beurteilbar";
 
   useEffect(() => {
     track("Kontaktbereich angezeigt", { schadenschwere: result.severity.level });
   }, [result.severity.level]);
 
   return (
-    <section className={styles.card}>
-      <h2 className={styles.stepTitle}>Ihre unverbindliche Ersteinschätzung</h2>
+    <section className={`${styles.card} ${styles.enter}`}>
+      <span className={styles.eyebrow}>Ihre unverbindliche Ersteinschätzung</span>
 
       {result.analysis_status === "insufficient_images" && (
         <div className={styles.warningBox}>
-          Die übermittelten Fotos reichen für eine Einschätzung leider nicht aus.
+          Die Fotos reichen für eine Einschätzung leider nicht aus.
           {result.additional_photos_requested.length > 0 && (
             <ul>
               {result.additional_photos_requested.map((a, i) => (
@@ -662,6 +686,28 @@ function ResultView({
       )}
 
       <p className={styles.resultSummary}>{result.summary}</p>
+
+      <div className={styles.resultStats}>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>Schadenschwere</span>
+          <strong className={styles.statValue}>{result.severity.level}</strong>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>Grobe Reparaturkosten</span>
+          <strong className={styles.statValue}>
+            {result.estimated_cost_range.possible
+              ? `${result.estimated_cost_range.minimum_eur.toLocaleString("de-DE")} – ${result.estimated_cost_range.maximum_eur.toLocaleString("de-DE")} €`
+              : "nicht seriös bestimmbar"}
+          </strong>
+        </div>
+      </div>
+
+      {result.drivability_warning.possible_safety_issue && (
+        <div className={styles.dangerBox}>
+          <strong>Sicherheitshinweis:</strong> {result.drivability_warning.message} Bewegen Sie das Fahrzeug im
+          Zweifel nicht weiter und lassen Sie es professionell prüfen.
+        </div>
+      )}
 
       {result.visible_damage.length > 0 && (
         <div className={styles.resultSection}>
@@ -681,110 +727,68 @@ function ResultView({
         </div>
       )}
 
-      <div className={styles.resultSection}>
-        <h3>Grobe Schadenschwere</h3>
-        <p>
-          <strong>{result.severity.level}</strong> – {result.severity.explanation}
-        </p>
-      </div>
-
-      {result.drivability_warning.possible_safety_issue && (
-        <div className={styles.dangerBox}>
-          <strong>Sicherheitshinweis:</strong> {result.drivability_warning.message}
-          <br />
-          Anhand der Angaben oder Fotos kann ein sicherheitsrelevanter Schaden nicht ausgeschlossen werden.
-          Bewegen Sie das Fahrzeug im Zweifel nicht weiter und lassen Sie es professionell prüfen.
-        </div>
-      )}
-
-      <div className={styles.resultSection}>
-        <h3>Grobe Reparaturkostenspanne</h3>
-        {result.estimated_cost_range.possible ? (
+      <details className={styles.more}>
+        <summary>Details zur Einschätzung</summary>
+        <div className={styles.moreBody}>
           <p>
-            Auf Grundlage der sichtbaren Beschädigungen erscheint eine grobe Spanne von etwa{" "}
-            <strong>
-              {result.estimated_cost_range.minimum_eur.toLocaleString("de-DE")} € bis{" "}
-              {result.estimated_cost_range.maximum_eur.toLocaleString("de-DE")} €
-            </strong>{" "}
-            denkbar. {result.estimated_cost_range.explanation}
+            <strong>Schadenschwere:</strong> {result.severity.explanation}
           </p>
-        ) : (
-          <p>Eine belastbare Kostenspanne lässt sich anhand der vorhandenen Fotos nicht seriös angeben.</p>
-        )}
-      </div>
-
-      {result.possible_hidden_damage.length > 0 && (
-        <div className={styles.resultSection}>
-          <h3>Mögliche verdeckte Schäden</h3>
-          <ul>
-            {result.possible_hidden_damage.map((h, i) => (
-              <li key={i}>{h}</li>
-            ))}
-          </ul>
+          {result.estimated_cost_range.possible && (
+            <p>
+              <strong>Kostenspanne:</strong> {result.estimated_cost_range.explanation}
+            </p>
+          )}
+          {result.possible_hidden_damage.length > 0 && (
+            <>
+              <p>
+                <strong>Mögliche verdeckte Schäden:</strong>
+              </p>
+              <ul>
+                {result.possible_hidden_damage.map((h, i) => (
+                  <li key={i}>{h}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {result.limitations.length > 0 && (
+            <>
+              <p>
+                <strong>Grenzen dieser Analyse:</strong>
+              </p>
+              <ul>
+                {result.limitations.map((l, i) => (
+                  <li key={i}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
-      )}
+      </details>
 
-      {result.limitations.length > 0 && (
-        <div className={styles.resultSection}>
-          <h3>Grenzen dieser Analyse</h3>
-          <ul>
-            {result.limitations.map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className={styles.disclaimerBox}>
-        Diese automatisierte Auswertung basiert ausschließlich auf den übermittelten Fotos und Angaben. Sie
-        ersetzt weder ein Gutachten noch einen Kostenvoranschlag oder eine technische Untersuchung.
-        Verdeckte, strukturelle und sicherheitsrelevante Schäden können unentdeckt bleiben.
-      </div>
+      <p className={styles.disclaimer}>
+        Automatisierte Auswertung nur anhand der Fotos. Ersetzt kein Gutachten und keinen Kostenvoranschlag;
+        verdeckte Schäden können unentdeckt bleiben.
+      </p>
 
       <div className={styles.contactCta}>
-        <h3>Lassen Sie den Schaden professionell prüfen</h3>
+        <h3>Jetzt vom Gutachter prüfen lassen</h3>
         <p>
-          Eine zuverlässige Beurteilung ist erst durch eine persönliche Prüfung des Fahrzeugs möglich.
-          Kfz-Gutachter Stefan Witmaier prüft den Schaden fachgerecht und bespricht mit Ihnen die nächsten
-          Schritte.
+          Stefan Witmaier prüft den Schaden persönlich und bespricht mit Ihnen die nächsten Schritte. Für
+          Unfallgeschädigte in der Regel kostenlos.
         </p>
+        <ContactButtons whatsappHref={whatsappHref} onContactClick={(kanal) => track("Kontakt angeklickt", { kanal })} />
         <p className={styles.smallNote}>
-          Beim Klick auf eine der folgenden Optionen wird eine Nachricht mit den Eckdaten Ihrer Anfrage in
-          Ihrer eigenen E-Mail- oder WhatsApp-App vorausgefüllt. Es wird nichts automatisch übermittelt –
-          Sie entscheiden, ob Sie sie absenden.
+          WhatsApp öffnet sich mit Ihrer Zusammenfassung vorausgefüllt. Oder{" "}
+          <a href={mailtoHref} onClick={() => track("Kontakt angeklickt", { kanal: "email" })}>
+            per E-Mail anfragen
+          </a>
+          .
         </p>
-        <div className={styles.contactButtons}>
-          <a
-            className={styles.primaryBtnLink}
-            href="tel:+4917699808695"
-            onClick={() => track("Kontakt angeklickt", { kanal: "telefon" })}
-          >
-            Jetzt direkt anrufen
-          </a>
-          <a
-            className={`${styles.secondaryBtnLink} ${styles.whatsappBtn}`}
-            href={whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => track("Kontakt angeklickt", { kanal: "whatsapp" })}
-          >
-            WhatsApp schreiben
-          </a>
-          <a
-            className={styles.secondaryBtnLink}
-            href={mailtoHref}
-            onClick={() => track("Kontakt angeklickt", { kanal: "email" })}
-          >
-            Per E-Mail anfragen
-          </a>
-        </div>
       </div>
 
-      <div className={styles.actionsRow}>
-        <button type="button" className={styles.secondaryBtn} onClick={onRestart}>
-          Neue Analyse starten
-        </button>
-      </div>
+      <button type="button" className={styles.backBtn} onClick={onRestart}>
+        Neue Analyse starten
+      </button>
     </section>
   );
 }
