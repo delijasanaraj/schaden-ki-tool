@@ -28,7 +28,16 @@ const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 // der Vercel-Funktion zu reissen (siehe Vorfall vom 10.09.2026: echter Nutzer,
 // mehrere Fotos, "Task timed out after 60 seconds" laut Vercel-Logs). "medium"
 // ist laut Anthropic haeufig der beste Kompromiss aus Qualitaet und Tempo.
-const ANALYSIS_EFFORT = (process.env.ANTHROPIC_EFFORT || "medium") as "low" | "medium" | "high" | "xhigh" | "max";
+type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+const ANALYSIS_EFFORT = (process.env.ANTHROPIC_EFFORT || "medium") as Effort;
+
+// Reale Produktionstests (02.10.2026, echtes Testfoto 18x/20x ueber die Live-URL)
+// zeigten 30-46s Serverzeit bei 18-20 Fotos - das schwankt mit der Anthropic-
+// Auslastung und liegt gefaehrlich nah am harten 60s-Limit der Vercel-Funktion
+// (siehe Vorfall 10.09.2026). Ab vielen Fotos wird der Aufwand automatisch auf
+// "low" reduziert, um Luft zum Limit zu behalten - lieber eine etwas einfachere
+// Analyse als ein erneuter Absturz fuer echte Interessenten.
+const HIGH_VOLUME_PHOTO_THRESHOLD = Number(process.env.HIGH_VOLUME_PHOTO_THRESHOLD || 10);
 
 // Business-Kalibrierung auf Wunsch des Gutachters: die rohe KI-Schaetzung liegt
 // laut seiner Erfahrung systematisch zu niedrig. Der Multiplikator wird NACH der
@@ -63,13 +72,13 @@ function isRateLimited(ip: string): boolean {
   return timestamps.length > RATE_LIMIT_PER_HOUR;
 }
 
-async function stripExifAndReencode(buffer: Buffer): Promise<Buffer> {
+async function stripExifAndReencode(buffer: Buffer, maxEdge: number): Promise<Buffer> {
   // sharp() liest die EXIF-Orientierung, .rotate() ohne Parameter wendet sie
   // physisch an. Der Aufruf von .jpeg() ohne withMetadata() verwirft danach
   // alle Metadaten (inkl. GPS) - das Ergebnis enthaelt keine EXIF-Daten mehr.
   return sharp(buffer)
     .rotate()
-    .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
+    .resize({ width: maxEdge, height: maxEdge, fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: 82 })
     .toBuffer();
 }
@@ -145,12 +154,16 @@ export async function POST(req: NextRequest) {
       vehicleData = parsed.data;
     }
 
+    const effectiveEffort: Effort =
+      files.length > HIGH_VOLUME_PHOTO_THRESHOLD ? "low" : ANALYSIS_EFFORT;
+    const imageMaxEdge = files.length > HIGH_VOLUME_PHOTO_THRESHOLD ? 1100 : 1400;
+
     let processedImages: string[];
     try {
       processedImages = await Promise.all(
         files.map(async (file) => {
           const arrayBuffer = await file.arrayBuffer();
-          const cleaned = await stripExifAndReencode(Buffer.from(arrayBuffer));
+          const cleaned = await stripExifAndReencode(Buffer.from(arrayBuffer), imageMaxEdge);
           return cleaned.toString("base64");
         })
       );
@@ -176,7 +189,7 @@ export async function POST(req: NextRequest) {
       system: SYSTEM_PROMPT,
       output_config: {
         format: betaZodOutputFormat(analysisResultSchema),
-        effort: ANALYSIS_EFFORT,
+        effort: effectiveEffort,
       },
       messages: [
         {

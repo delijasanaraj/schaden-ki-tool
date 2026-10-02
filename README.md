@@ -167,6 +167,20 @@ zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genau
   der generischen Fehlermeldung. Sollte es trotzdem wieder zu Timeouts kommen: `ANTHROPIC_EFFORT` ist
   bereits auf dem niedrigsten sinnvollen Wert für gute Qualität - nächster Schritt wäre dann tatsächlich
   der Vercel-Pro-Plan (siehe oben), nicht eine weitere Prompt-Anpassung.
+- **Erneuter Absturz-Report (02.10.2026) - Ursache: Restrisiko trotz 10.09.-Fix.** Ein echter Nutzer
+  meldete erneut einen Absturz beim Hochladen von Fotos. Live-Test mit echtem Testfoto über die
+  Produktions-URL (18x bzw. 20x dasselbe Foto, realistisch komprimiert wie im Browser) ergab **30-46
+  Sekunden Serverzeit je nach Anthropic-Auslastung** - das schwankt von Anfrage zu Anfrage und liegt
+  gefährlich nah am harten 60s-Limit; bei einer langsameren Mobilverbindung oder etwas höherer
+  API-Auslastung reicht das zum erneuten Timeout. Das erklärt, warum es nur gelegentlich auftrat statt
+  reproduzierbar. **Fix:** `app/api/analyze/route.ts` reduziert jetzt automatisch den Analyse-Aufwand auf
+  `low` UND die Fotoauflösung auf 1100px (statt 1400px), sobald mehr als `HIGH_VOLUME_PHOTO_THRESHOLD`
+  (Standard 10) Fotos hochgeladen werden - konfigurierbar über die gleichnamige Umgebungsvariable. Bei ≤10
+  Fotos bleibt es beim bisherigen Verhalten (`ANTHROPIC_EFFORT`, 1400px). Lokal verifiziert: 18 Fotos mit
+  dem neuen Low-Effort-Pfad in ~25s statt zuvor 30-46s - deutlich mehr Puffer. Diese Maßnahme reduziert das
+  Restrisiko, beseitigt es aber nicht vollständig, da die Hobby-Plan-Obergrenze von 60s weiterhin ein hartes
+  Plattformlimit ist - der zuverlässigste nächste Schritt bleibt der Vercel-Pro-Plan (deutlich höheres
+  `maxDuration`-Limit, kostenpflichtig, vorher mit dem Kunden zu besprechen).
 - **Ratenbegrenzung ist nur ein Notbehelf:** Die eingebaute Zählung lebt nur im Arbeitsspeicher einer
   einzelnen Serverless-Instanz und wird bei jedem Kaltstart zurückgesetzt. Für echten Schutz vor Missbrauch
   später z. B. Vercel-eigenes Rate-Limiting oder einen Dienst wie Upstash Redis ergänzen.
