@@ -12,9 +12,19 @@ const GENERIC_ERROR_MESSAGE =
   "Der Fahrzeugschein konnte nicht ausgelesen werden. Bitte tragen Sie die Fahrzeugdaten stattdessen manuell ein.";
 
 const client = new Anthropic();
-// Bewusst ein schnelles, guenstiges Modell - reines Ablesen von Formularfeldern
-// braucht keine hohe Modellstaerke wie die eigentliche Schadenanalyse.
-const EXTRACTION_MODEL = process.env.ANTHROPIC_EXTRACTION_MODEL || "claude-haiku-4-5";
+// Echter Vorfall (02.10.2026): claude-haiku-4-5 ohne Bedenkzeit las bei kleinem,
+// dichtem Formulartext zuverlaessig FALSCHE, aber plausibel klingende Werte (z.B.
+// "Audi A6 Baujahr 2024" als 1984 gelesen, "Daihatsu Sirion 2009" als "Opel Astra
+// 2012" erkannt) statt ehrlich "nicht lesbar" zu melden. Fuer eine einzelne
+// Dokumentseite ist der Kostenunterschied zu einem staerkeren Modell vernachlaessigbar -
+// Genauigkeit hat hier klar Vorrang vor Tempo/Kosten.
+const EXTRACTION_MODEL = process.env.ANTHROPIC_EXTRACTION_MODEL || "claude-opus-5";
+const EXTRACTION_EFFORT = (process.env.ANTHROPIC_EXTRACTION_EFFORT || "high") as
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,8 +57,8 @@ export async function POST(req: NextRequest) {
       // selbst wird nach der Auswertung nirgends gespeichert.
       const cleaned = await sharp(Buffer.from(arrayBuffer))
         .rotate()
-        .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 85 })
+        .resize({ width: 2200, height: 2200, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 92 })
         .toBuffer();
       imageBase64 = cleaned.toString("base64");
     } catch (err) {
@@ -61,10 +71,14 @@ export async function POST(req: NextRequest) {
 
     const response = await client.beta.messages.parse({
       model: EXTRACTION_MODEL,
-      max_tokens: 1024,
+      // Grosszuegig bemessen, da Claude Opus 5 standardmaessig denkt (siehe route.ts
+      // fuer /api/analyze) - ein knappes Limit schneidet sonst die strukturierte
+      // Antwort ab und laesst den Parser fehlschlagen.
+      max_tokens: 4096,
       system: EXTRACTION_SYSTEM_PROMPT,
       output_config: {
         format: betaZodOutputFormat(vehicleExtractionSchema),
+        effort: EXTRACTION_EFFORT,
       },
       messages: [
         {

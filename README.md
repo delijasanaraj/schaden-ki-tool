@@ -206,6 +206,21 @@ zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genau
   kuratierte Liste (`lib/vehicleData.ts`, ca. 32 Marken) abgeglichen; bei Nichttreffer wird automatisch
   "Sonstiger Hersteller"/"Sonstiges Modell" gewählt und der roh erkannte Text separat angezeigt - der
   Nutzer sollte die Felder immer kurz prüfen.
+- **Echter Vorfall (02.10.2026) - Fahrzeugschein wurde zuverlässig FALSCH statt nur ungenau gelesen:**
+  Ein Nutzer meldete, dass ein Audi A6 (Baujahr 2024) als Baujahr 1984 erkannt wurde, und ein Daihatsu
+  Sirion (2009) komplett als "Opel Astra 2012" - keine Unschärfe, sondern plausibel klingende, aber
+  falsche Werte. Ursache: `claude-haiku-4-5` (bewusst günstig gewählt, da die Aufgabe "einfach" wirkte)
+  ohne Bedenkzeit (`effort`) bei kleinem, dichtem Formulartext in Kombination mit zu geringer Auflösung
+  (Client-Kompression auf 1400px, serverseitig erneut komprimiert). **Behoben:**
+  `ANTHROPIC_EXTRACTION_MODEL` jetzt standardmäßig `claude-opus-5` (wie die Schadenanalyse) mit
+  `ANTHROPIC_EXTRACTION_EFFORT=high`, Auflösung für den Fahrzeugschein auf 2200px/Qualität 92 erhöht
+  (eigene, höhere Werte als bei Schadenfotos - ein Dokument mit kleinem Text braucht mehr Schärfe als
+  eine allgemeine Schadensübersicht), und der Prompt (`lib/prompt.ts`) explizit angewiesen, ein Feld
+  bei auch nur einem unklaren Zeichen komplett leer zu lassen statt einen bekannten/plausiblen Wert zu
+  raten. Mit zwei synthetischen Testdokumenten (Daihatsu Sirion 2009, Audi A6 2024) lokal verifiziert -
+  beide korrekt gelesen. **Einschränkung:** nur mit synthetischen Testbildern geprüft, nicht mit den
+  echten, vom Nutzer gemeldeten Fotos (lagen mir nicht vor) - bei erneuten Fehllesungen mit echten
+  Fahrzeugscheinen bitte zeitnah zurückmelden, idealerweise mit dem Originalfoto.
 - **Kein Monitoring/Alerting** bei Fehlern oder ungewöhnlich hohem Verbrauch – im Anthropic-Dashboard
   gelegentlich manuell prüfen oder ein Ausgaben-Limit im Anthropic-Konto setzen.
 

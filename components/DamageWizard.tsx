@@ -219,7 +219,10 @@ export default function DamageWizard() {
     }
     setRegistrationExtracting(true);
     try {
-      const compressed = await compressImage(file);
+      // Hoehere Aufloesung/Qualitaet als bei Schadenfotos: ein Fahrzeugschein hat kleine,
+      // dichte Textfelder - zu starke Kompression fuehrte zu Fehllesungen (z.B. Baujahr
+      // oder Hersteller/Modell komplett falsch erkannt statt "nicht lesbar").
+      const compressed = await compressImage(file, 2200, 0.92);
       const formData = new FormData();
       formData.append("document", compressed, compressed.name);
       const res = await fetch("/api/extract-vehicle", { method: "POST", body: formData });
