@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { track } from "@vercel/analytics";
 import styles from "./DamageWizard.module.css";
 import { compressImage } from "@/lib/compressImage";
 import {
@@ -61,6 +62,13 @@ export default function DamageWizard() {
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Datenschutzfreundliche Nutzungsstatistik (Vercel Analytics) - zaehlt nur
+  // anonyme Ereignisse, keine Fotos/Namen/Kontaktdaten. Gibt dem Gutachter eine
+  // grobe Sicht auf die Nutzung des Tools, ohne eine eigene Datenbank zu brauchen.
+  useEffect(() => {
+    track("Tool geoeffnet");
+  }, []);
+
   useEffect(() => {
     if (step !== "loading") return;
     const interval = setInterval(() => {
@@ -72,6 +80,7 @@ export default function DamageWizard() {
   const addFiles = useCallback(
     async (fileList: FileList | File[]) => {
       setFileError(null);
+      if (photos.length === 0) track("Upload gestartet");
       const incoming = Array.from(fileList);
       const room = MAX_IMAGES - photos.length;
       if (room <= 0) {
@@ -139,6 +148,7 @@ export default function DamageWizard() {
     setSubmitting(true);
     setStep("loading");
     setErrorMessage(null);
+    track("Analyse gestartet", { fotoAnzahl: photos.length });
 
     // Schuetzt vor einer haengenden Anfrage. Die Vercel-Funktion selbst wird nach
     // 60s hart vom Server abgebrochen (Plattform-Limit, siehe route.ts) - dieser
@@ -164,21 +174,25 @@ export default function DamageWizard() {
       try {
         data = await res.json();
       } catch {
+        track("Analyse fehlgeschlagen", { grund: res.status === 504 || res.status === 502 ? "timeout" : "fehler" });
         setErrorMessage(res.status === 504 || res.status === 502 ? TIMEOUT_MESSAGE : GENERIC_ERROR_MESSAGE);
         setStep("error");
         return;
       }
 
       if (!res.ok || !data?.result) {
+        track("Analyse fehlgeschlagen", { grund: "fehler" });
         setErrorMessage(data?.message || GENERIC_ERROR_MESSAGE);
         setStep("error");
         return;
       }
 
+      track("Analyse erfolgreich", { fotoAnzahl: photos.length });
       setResult(data.result);
       setStep("result");
     } catch (err) {
       const isTimeout = err instanceof DOMException && err.name === "AbortError";
+      track("Analyse fehlgeschlagen", { grund: isTimeout ? "timeout" : "fehler" });
       setErrorMessage(isTimeout ? TIMEOUT_MESSAGE : GENERIC_ERROR_MESSAGE);
       setStep("error");
     } finally {
@@ -227,6 +241,8 @@ export default function DamageWizard() {
         model: effectiveModel || v.model,
         firstRegistration: year || v.firstRegistration,
       }));
+
+      track("Fahrzeugschein hochgeladen", { erkannt: extracted.found });
 
       const detectedLabel = [extracted.make, extracted.model, extracted.firstRegistrationYear]
         .filter(Boolean)
@@ -624,6 +640,10 @@ function ResultView({
   const confidenceLabel = (c: "low" | "medium" | "high") =>
     c === "high" ? "auf dem Foto deutlich erkennbar" : c === "medium" ? "wahrscheinlich erkennbar" : "nicht sicher beurteilbar";
 
+  useEffect(() => {
+    track("Kontaktbereich angezeigt", { schadenschwere: result.severity.level });
+  }, [result.severity.level]);
+
   return (
     <section className={styles.card}>
       <h2 className={styles.stepTitle}>Ihre unverbindliche Ersteinschätzung</h2>
@@ -734,7 +754,11 @@ function ResultView({
           Sie entscheiden, ob Sie sie absenden.
         </p>
         <div className={styles.contactButtons}>
-          <a className={styles.primaryBtnLink} href="tel:+4917699808695">
+          <a
+            className={styles.primaryBtnLink}
+            href="tel:+4917699808695"
+            onClick={() => track("Kontakt angeklickt", { kanal: "telefon" })}
+          >
             Jetzt direkt anrufen
           </a>
           <a
@@ -742,10 +766,15 @@ function ResultView({
             href={whatsappHref}
             target="_blank"
             rel="noreferrer"
+            onClick={() => track("Kontakt angeklickt", { kanal: "whatsapp" })}
           >
             WhatsApp schreiben
           </a>
-          <a className={styles.secondaryBtnLink} href={mailtoHref}>
+          <a
+            className={styles.secondaryBtnLink}
+            href={mailtoHref}
+            onClick={() => track("Kontakt angeklickt", { kanal: "email" })}
+          >
             Per E-Mail anfragen
           </a>
         </div>
