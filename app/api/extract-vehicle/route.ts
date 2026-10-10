@@ -4,6 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import sharp from "sharp";
 import { ACCEPTED_MIME_TYPES, MAX_IMAGE_BYTES, vehicleExtractionSchema } from "@/lib/schema";
 import { EXTRACTION_SYSTEM_PROMPT } from "@/lib/prompt";
+import { clientIp, createRateLimiter } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -26,8 +27,19 @@ const EXTRACTION_EFFORT = (process.env.ANTHROPIC_EXTRACTION_EFFORT || "high") as
   | "xhigh"
   | "max";
 
+// Eigener Zaehler: ohne Begrenzung konnte dieser Endpunkt unbegrenzt oft mit dem
+// teuren Modell aufgerufen werden.
+const isRateLimited = createRateLimiter(Number(process.env.RATE_LIMIT_PER_HOUR || 20));
+
 export async function POST(req: NextRequest) {
   try {
+    if (isRateLimited(clientIp(req))) {
+      return NextResponse.json(
+        { error: "rate_limited", message: "Zu viele Anfragen. Bitte versuchen Sie es später erneut." },
+        { status: 429 }
+      );
+    }
+
     const form = await req.formData();
     const file = form.get("document");
 

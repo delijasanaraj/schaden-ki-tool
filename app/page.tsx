@@ -30,6 +30,11 @@ export default function Home() {
             Fahrzeugschein und Fotos hochladen, in wenigen Minuten erhalten Sie eine unverbindliche
             KI-Ersteinschätzung.
           </p>
+          <p className={styles.heroAbout}>
+            Die KI wurde mit dem Fachwissen von Kfz-Sachverständigem Stefan Witmaier abgestimmt – auf Basis
+            von 15 Jahren Praxiserfahrung. Die Einschätzung orientiert sich an seinem Wissen; nach seiner
+            Erfahrung liefert sie mittlerweile sehr gute Ersteinschätzungen.
+          </p>
 
           <ul className={styles.chips}>
             <li><CheckIcon /> Kostenlos</li>

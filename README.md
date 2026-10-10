@@ -37,25 +37,27 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
   Telefon/WhatsApp/E-Mail) - sichtbar im Vercel-Dashboard unter "Analytics". Enthält **keine** Fotos,
   Namen, Telefonnummern oder sonstige personenbezogenen Daten, nur Zähler/Kategorien. Beantwortet "wie
   oft wird das Tool benutzt und wo brechen Nutzer ab", aber NICHT "wer genau hat es benutzt" - dafür
-  wäre eine echte Lead-Erfassung nötig (siehe unten, bewusst noch nicht umgesetzt).
+  wäre eine echte Lead-Erfassung nötig (siehe nächster Punkt).
+- **Lead-Erfassung vor der Schadenssumme (seit 10.10.2026):** Im Schritt "Fahrzeug prüfen" müssen Vor- und
+  Nachname, Telefonnummer und E-Mail eingegeben und eine **eigene Einwilligung zur Kontaktaufnahme**
+  bestätigt werden (getrennt von der Einwilligung zur Analyse - nötig, damit der Gutachter anrufen darf).
+  Die Pflicht wird **serverseitig** in `app/api/analyze/route.ts` erzwungen (ohne gültige Kontaktdaten
+  keine Analyse, keine Schadenssumme), nicht nur im Browser. Jede Nutzung löst eine E-Mail-Benachrichtigung
+  an den Gutachter aus (`lib/notify.ts`, Resend): E-Mail 1 "Neuer KI-Lead" mit Kontaktdaten und Fahrzeugdaten
+  (wird VOR der Analyse gesendet, kommt also auch bei einem Timeout an), E-Mail 2 "KI-Ergebnis" mit
+  angezeigter Schadenssumme und Zusammenfassung. Es werden keine Fotos versendet und nichts in einer
+  Datenbank gespeichert. **Voraussetzung:** `RESEND_API_KEY` und `LEAD_NOTIFY_EMAIL` in Vercel setzen (siehe
+  `.env.example`). Ohne diese Werte wird NICHTS versendet - der Lead steht dann nur als
+  `[LEAD-NICHT-ZUGESTELLT]` im kurzlebigen Vercel-Laufzeit-Log. Mit der Standard-Absenderadresse
+  `onboarding@resend.dev` liefert Resend nur an die E-Mail des eigenen Resend-Kontos; für andere Empfänger
+  (z. B. den Gutachter) muss bei Resend eine Domain verifiziert werden. **Rechtlich zu klären:** Resend
+  (USA) wird zusätzlicher Auftragsverarbeiter, die Datenschutzerklärung auf stefan-witmaier.de muss um
+  Kontaktdaten/Lead-Verarbeitung ergänzt werden.
 
 ## Was hier bewusst NICHT implementiert ist
 
 - **Keine dauerhafte Speicherung** von Fotos, Fahrzeugschein-Bildern oder Ergebnissen (kein
   Datenbank-Anschluss). Alles wird nur im Arbeitsspeicher der Anfrage verarbeitet und danach verworfen.
-- **Kein CRM/Lead-Backend mit echten Kontaktdaten.** Die Kontaktübergabe passiert weiterhin rein
-  clientseitig über `mailto:` / `tel:` / `wa.me`-Links - das heißt: **wenn der Nutzer die vorausgefüllte
-  Nachricht in seiner eigenen App nicht selbst abschickt, erreicht den Gutachter gar nichts.** Es gibt
-  (noch) keine serverseitige Erfassung von Namen/Telefonnummer, auch wenn seit 02.10.2026 anonyme
-  Nutzungszahlen sichtbar sind (siehe oben). Für echtes "Lead anrufen können, auch wenn die Nachricht nie
-  abgeschickt wurde" bräuchte es eine bewusste Erweiterung, z. B.: (a) ein optionales Formularfeld
-  "Rückruf anfordern" mit Name/Telefonnummer und eigener, getrennter Einwilligung, das serverseitig per
-  E-Mail an den Gutachter gesendet wird (braucht einen E-Mail-Versanddienst wie Resend - der Gutachter
-  müsste dort selbst ein kostenloses Konto anlegen und mir den API-Key geben, das kann ich nicht
-  stellvertretend für ihn tun), oder (b) eine kleine Datenbank mit passwortgeschützter Lead-Liste
-  (mehr Aufwand, mehr Datenschutzpflichten). Bewusst noch nicht umgesetzt, weil das eine echte
-  Architektur- und Datenschutzentscheidung ist, die der Gutachter treffen sollte, bevor Kontaktdaten
-  erstmals irgendwo gespeichert werden.
 - **Keine belastbare Ratenbegrenzung.** Die eingebaute IP-Zählung ist nur ein Notbehelf (siehe unten).
 - **Keine automatischen Löschfristen**, weil nichts gespeichert wird, gibt es nichts zu löschen – das
   ist zugleich die einfachste Umsetzung von Datenminimierung.

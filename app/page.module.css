@@ -76,6 +76,16 @@
   max-width: 46ch;
 }
 
+.heroAbout {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #b9bdcc;
+  margin: -8px 0 24px;
+  max-width: 52ch;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-gold);
+}
+
 .chips {
   list-style: none;
   padding: 0;

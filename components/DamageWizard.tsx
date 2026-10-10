@@ -6,6 +6,7 @@ import styles from "./DamageWizard.module.css";
 import ContactButtons from "./ContactButtons";
 import { ArrowIcon, CameraIcon, CheckIcon, DocumentIcon } from "./icons";
 import { compressImage } from "@/lib/compressImage";
+import { leadErrors, type LeadData } from "@/lib/lead";
 import {
   MAX_IMAGES,
   MIN_IMAGES,
@@ -54,6 +55,9 @@ export default function DamageWizard() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [vehicleData, setVehicleData] = useState<VehicleData>({});
   const [consentAnalysis, setConsentAnalysis] = useState(false);
+  const [consentContact, setConsentContact] = useState(false);
+  const [contact, setContact] = useState<LeadData>({ firstName: "", lastName: "", phone: "", email: "" });
+  const [showContactErrors, setShowContactErrors] = useState(false);
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -150,14 +154,42 @@ export default function DamageWizard() {
     if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   };
 
-  const canSubmit = photos.length >= MIN_IMAGES && consentAnalysis && !submitting;
+  const [isDraggingDoc, setIsDraggingDoc] = useState(false);
+
+  const onDropDocument = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingDoc(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleRegistrationUpload(file);
+  };
+
+  // Ein neben die Upload-Felder fallengelassenes Foto wuerde sonst im Browser geoeffnet
+  // und das Formular samt Eingaben verlassen.
+  useEffect(() => {
+    const prevent = (e: Event) => e.preventDefault();
+    window.addEventListener("dragover", prevent);
+    window.addEventListener("drop", prevent);
+    return () => {
+      window.removeEventListener("dragover", prevent);
+      window.removeEventListener("drop", prevent);
+    };
+  }, []);
+
+  const contactErrors = leadErrors(contact);
+  const contactValid = Object.keys(contactErrors).length === 0;
+  const canSubmit =
+    photos.length >= MIN_IMAGES && consentAnalysis && consentContact && contactValid && !submitting;
 
   const submitAnalysis = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      setShowContactErrors(true);
+      return;
+    }
     setSubmitting(true);
     goTo("loading");
     setErrorMessage(null);
     track("Analyse gestartet", { fotoAnzahl: photos.length });
+    track("Lead erfasst");
 
     // Schuetzt vor einer haengenden Anfrage. Die Vercel-Funktion selbst wird nach
     // 60s hart vom Server abgebrochen (Plattform-Limit, siehe route.ts) - dieser
@@ -171,6 +203,7 @@ export default function DamageWizard() {
       const formData = new FormData();
       photos.forEach((p) => formData.append("photos", p.file, p.file.name));
       formData.append("vehicleData", JSON.stringify(vehicleData));
+      formData.append("lead", JSON.stringify({ ...contact, consent: consentContact }));
 
       const res = await fetch("/api/analyze", { method: "POST", body: formData, signal: controller.signal });
 
@@ -309,7 +342,15 @@ export default function DamageWizard() {
           <div className={styles.uploadGrid}>
             {/* Fahrzeugschein */}
             <label
-              className={`${styles.tile} ${styles.tileSmall} ${registrationDetected ? styles.tileDone : ""}`}
+              className={`${styles.tile} ${styles.tileSmall} ${registrationDetected ? styles.tileDone : ""} ${
+                isDraggingDoc ? styles.dropzoneActive : ""
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingDoc(true);
+              }}
+              onDragLeave={() => setIsDraggingDoc(false)}
+              onDrop={onDropDocument}
             >
               <input
                 type="file"
@@ -333,7 +374,9 @@ export default function DamageWizard() {
                     : "Fahrzeugschein"}
                 </strong>
                 <span>
-                  {registrationDetected ? "Erkannt, tippen zum Ersetzen" : "Optional · füllt Fahrzeugdaten aus"}
+                  {registrationDetected
+                    ? "Erkannt, tippen zum Ersetzen"
+                    : "Optional · füllt Fahrzeugdaten aus · auch per Drag & Drop"}
                 </span>
               </span>
               {!registrationDetected && !registrationExtracting && (
@@ -576,6 +619,71 @@ export default function DamageWizard() {
             </div>
           </details>
 
+          <div className={styles.contactBox}>
+            <h3 className={styles.contactTitle}>Ihre Kontaktdaten</h3>
+            <p className={styles.contactNote}>
+              Nach der Eingabe sehen Sie Ihre Ersteinschätzung samt Schadenssumme. Der Gutachter kann sich
+              dann bei Rückfragen bei Ihnen melden.
+            </p>
+            <div className={styles.formGrid}>
+              <label className={styles.field}>
+                <span>Vorname</span>
+                <input
+                  type="text"
+                  autoComplete="given-name"
+                  value={contact.firstName}
+                  onChange={(e) => setContact((c) => ({ ...c, firstName: e.target.value }))}
+                  aria-invalid={showContactErrors && !!contactErrors.firstName}
+                />
+                {showContactErrors && contactErrors.firstName && (
+                  <span className={styles.fieldError}>{contactErrors.firstName}</span>
+                )}
+              </label>
+              <label className={styles.field}>
+                <span>Nachname</span>
+                <input
+                  type="text"
+                  autoComplete="family-name"
+                  value={contact.lastName}
+                  onChange={(e) => setContact((c) => ({ ...c, lastName: e.target.value }))}
+                  aria-invalid={showContactErrors && !!contactErrors.lastName}
+                />
+                {showContactErrors && contactErrors.lastName && (
+                  <span className={styles.fieldError}>{contactErrors.lastName}</span>
+                )}
+              </label>
+              <label className={styles.field}>
+                <span>Telefonnummer</span>
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="0176 12345678"
+                  value={contact.phone}
+                  onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))}
+                  aria-invalid={showContactErrors && !!contactErrors.phone}
+                />
+                {showContactErrors && contactErrors.phone && (
+                  <span className={styles.fieldError}>{contactErrors.phone}</span>
+                )}
+              </label>
+              <label className={styles.field}>
+                <span>E-Mail-Adresse</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  value={contact.email}
+                  onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
+                  aria-invalid={showContactErrors && !!contactErrors.email}
+                />
+                {showContactErrors && contactErrors.email && (
+                  <span className={styles.fieldError}>{contactErrors.email}</span>
+                )}
+              </label>
+            </div>
+          </div>
+
           <label className={styles.checkboxRow}>
             <input
               type="checkbox"
@@ -592,12 +700,36 @@ export default function DamageWizard() {
             </span>
           </label>
 
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={consentContact}
+              onChange={(e) => setConsentContact(e.target.checked)}
+            />
+            <span>
+              Ich bin damit einverstanden, dass mich Stefan Witmaier zu meiner Anfrage telefonisch, per
+              E-Mail oder WhatsApp kontaktieren darf und dass meine Kontaktdaten sowie die Eckdaten meiner
+              Anfrage dafür an ihn übermittelt werden. Diese Einwilligung kann ich jederzeit widerrufen.
+            </span>
+          </label>
+
           <div className={styles.actionsRow}>
             <button type="button" className={styles.backBtn} onClick={() => goTo("upload")}>
               Zurück
             </button>
-            <button type="button" className={styles.goldBtn} disabled={!canSubmit} onClick={submitAnalysis}>
-              <span>{consentAnalysis ? "Ersteinschätzung starten" : "Bitte Einwilligung bestätigen"}</span>
+            <button
+              type="button"
+              className={styles.goldBtn}
+              disabled={submitting}
+              onClick={submitAnalysis}
+            >
+              <span>
+                {!consentAnalysis || !consentContact
+                  ? "Bitte Einwilligungen bestätigen"
+                  : !contactValid
+                  ? "Bitte Kontaktdaten ergänzen"
+                  : "Ersteinschätzung starten"}
+              </span>
               <ArrowIcon />
             </button>
           </div>
@@ -645,6 +777,7 @@ export default function DamageWizard() {
             setPhotos([]);
             setResult(null);
             setConsentAnalysis(false);
+            setConsentContact(false);
             goTo("upload");
           }}
         />

@@ -15,6 +15,9 @@ import {
   type VehicleData,
 } from "@/lib/schema";
 import { SYSTEM_PROMPT, buildUserContext } from "@/lib/prompt";
+import { cleanLead, leadErrors, type LeadData } from "@/lib/lead";
+import { sendNotification } from "@/lib/notify";
+import { clientIp, createRateLimiter } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -57,19 +60,36 @@ function applyCostCalibration(result: AnalysisResult): AnalysisResult {
   };
 }
 
-// Sehr einfache, best-effort In-Memory-Ratenbegrenzung pro IP.
-// Ueberlebt keinen Serverless-Kaltstart und funktioniert nicht ueber mehrere
-// Instanzen hinweg zuverlaessig - siehe README fuer eine produktionsreife Alternative.
-const requestLog = new Map<string, number[]>();
-const RATE_LIMIT_PER_HOUR = Number(process.env.RATE_LIMIT_PER_HOUR || 20);
+const isRateLimited = createRateLimiter(Number(process.env.RATE_LIMIT_PER_HOUR || 20));
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const hourAgo = now - 60 * 60 * 1000;
-  const timestamps = (requestLog.get(ip) || []).filter((t) => t > hourAgo);
-  timestamps.push(now);
-  requestLog.set(ip, timestamps);
-  return timestamps.length > RATE_LIMIT_PER_HOUR;
+function formatVehicle(v: VehicleData): string {
+  const lines = [
+    `Fahrzeug: ${[v.make, v.model].filter(Boolean).join(" ") || "nicht angegeben"}`,
+    `Erstzulassung: ${v.firstRegistration || "nicht angegeben"}`,
+  ];
+  if (v.mileage) lines.push(`Kilometerstand: ${v.mileage}`);
+  if (v.damageArea) lines.push(`Beschädigter Bereich: ${v.damageArea}`);
+  if (v.drivable) lines.push(`Fahrbereit: ${v.drivable}`);
+  if (v.airbagsDeployed) lines.push(`Airbags ausgelöst: ${v.airbagsDeployed}`);
+  if (v.warningLights) lines.push(`Warnleuchten: ${v.warningLights}`);
+  if (v.description) lines.push(`Unfallhergang laut Kunde: ${v.description}`);
+  return lines.join("\n");
+}
+
+function formatLeadMail(lead: LeadData, vehicle: VehicleData, photoCount: number): string {
+  return [
+    "Jemand hat die KI-Schadenanalyse genutzt und seine Kontaktdaten hinterlassen.",
+    "Der Kunde hat der Kontaktaufnahme zu dieser Anfrage ausdrücklich zugestimmt.",
+    "",
+    `Name: ${lead.firstName} ${lead.lastName}`,
+    `Telefon: ${lead.phone}`,
+    `E-Mail: ${lead.email}`,
+    "",
+    formatVehicle(vehicle),
+    `Anzahl Fotos: ${photoCount}`,
+    "",
+    `Zeitpunkt: ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}`,
+  ].join("\n");
 }
 
 async function stripExifAndReencode(buffer: Buffer, maxEdge: number): Promise<Buffer> {
@@ -84,9 +104,11 @@ async function stripExifAndReencode(buffer: Buffer, maxEdge: number): Promise<Bu
 }
 
 export async function POST(req: NextRequest) {
+  // Wird erst nach erfolgreicher Pruefung der Kontaktdaten belegt und muss auch auf
+  // Fehlerpfaden abgewartet werden, sonst verwirft Vercel den laufenden Versand.
+  let leadDelivery: Promise<void> = Promise.resolve();
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    if (isRateLimited(ip)) {
+    if (isRateLimited(clientIp(req))) {
       return NextResponse.json(
         { error: "rate_limited", message: "Zu viele Anfragen. Bitte versuchen Sie es später erneut." },
         { status: 429 }
@@ -96,6 +118,27 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const files = form.getAll("photos").filter((f): f is File => f instanceof File);
     const vehicleDataRaw = form.get("vehicleData");
+
+    // Kontaktdaten sind Pflicht, bevor die Analyse (und damit die Schadenssumme) ausgefuehrt
+    // wird - verbindlich hier auf dem Server, nicht nur im Browser.
+    let leadInput: Partial<LeadData> & { consent?: boolean } = {};
+    try {
+      const leadRaw = form.get("lead");
+      if (typeof leadRaw === "string") leadInput = JSON.parse(leadRaw) ?? {};
+    } catch {
+      leadInput = {};
+    }
+    if (Object.keys(leadErrors(leadInput)).length > 0 || leadInput.consent !== true) {
+      return NextResponse.json(
+        {
+          error: "invalid_lead",
+          message:
+            "Bitte geben Sie Ihre Kontaktdaten vollständig an und stimmen Sie der Kontaktaufnahme zu, um Ihre Einschätzung zu sehen.",
+        },
+        { status: 400 }
+      );
+    }
+    const lead = cleanLead(leadInput as LeadData);
 
     if (files.length < MIN_IMAGES) {
       return NextResponse.json(
@@ -144,7 +187,18 @@ export async function POST(req: NextRequest) {
 
     let vehicleData: VehicleData = {};
     if (typeof vehicleDataRaw === "string" && vehicleDataRaw.length > 0) {
-      const parsed = vehicleDataSchema.safeParse(JSON.parse(vehicleDataRaw));
+      let rawObject: Record<string, unknown> = {};
+      try {
+        const json = JSON.parse(vehicleDataRaw);
+        // Leere Auswahlfelder ("Bitte waehlen" = "") gelten als nicht angegeben, statt die
+        // ganze Anfrage an der Enum-Pruefung scheitern zu lassen.
+        rawObject = Object.fromEntries(
+          Object.entries(json && typeof json === "object" ? json : {}).filter(([, v]) => v !== "")
+        );
+      } catch {
+        rawObject = {};
+      }
+      const parsed = vehicleDataSchema.safeParse(rawObject);
       if (!parsed.success) {
         return NextResponse.json(
           { error: "invalid_input", message: "Fahrzeugdaten konnten nicht gelesen werden." },
@@ -179,6 +233,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Lead-Benachrichtigung startet VOR der Analyse, damit der Kontakt auch dann beim
+    // Gutachter ankommt, wenn die Analyse spaeter in ein Timeout laeuft.
+    leadDelivery = sendNotification(
+      `Neuer KI-Lead: ${lead.firstName} ${lead.lastName}`,
+      formatLeadMail(lead, vehicleData, files.length)
+    ).then((ok) => {
+      if (!ok) {
+        // Notnagel ohne konfigurierten E-Mail-Dienst: Lead im Laufzeit-Log festhalten
+        // (kurze Aufbewahrung auf dem Hobby-Plan, siehe README).
+        console.log("[LEAD-NICHT-ZUGESTELLT]", JSON.stringify({ lead, fahrzeug: vehicleData, fotos: files.length }));
+      }
+    });
+
     const response = await client.beta.messages.parse({
       model: MODEL,
       // Grosszuegig bemessen: Claude Opus 5 denkt standardmaessig (thinking ist an),
@@ -209,17 +276,40 @@ export async function POST(req: NextRequest) {
     });
 
     if (response.stop_reason === "refusal") {
+      await leadDelivery;
       return NextResponse.json({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 502 });
     }
 
     const parsed = response.parsed_output as AnalysisResult | null;
     if (!parsed) {
+      await leadDelivery;
       return NextResponse.json({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 502 });
     }
 
-    return NextResponse.json({ result: applyCostCalibration(parsed), analysisId: randomUUID() });
+    const calibrated = applyCostCalibration(parsed);
+    const range = calibrated.estimated_cost_range;
+
+    await leadDelivery;
+    await sendNotification(
+      `KI-Ergebnis für ${lead.firstName} ${lead.lastName}`,
+      [
+        `Ergebnis der KI-Analyse für ${lead.firstName} ${lead.lastName} (Tel. ${lead.phone}):`,
+        "",
+        `Schadenschwere: ${calibrated.severity.level}`,
+        range.possible
+          ? `Angezeigte Schadenssumme: ${range.minimum_eur.toLocaleString("de-DE")} € bis ${range.maximum_eur.toLocaleString("de-DE")} €`
+          : "Keine Schadenssumme angezeigt (nicht seriös schätzbar).",
+        "",
+        `Zusammenfassung: ${calibrated.summary}`,
+        "",
+        formatVehicle(vehicleData),
+      ].join("\n")
+    );
+
+    return NextResponse.json({ result: calibrated, analysisId: randomUUID() });
   } catch (err) {
     console.error("[/api/analyze] Fehler:", err instanceof Error ? err.message : err);
+    await leadDelivery;
     return NextResponse.json({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 500 });
   }
 }
