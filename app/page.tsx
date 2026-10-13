@@ -5,8 +5,6 @@ import { CheckIcon, StarIcon } from "@/components/icons";
 import styles from "./page.module.css";
 import {
   SITE_URL,
-  PHONE_DISPLAY,
-  PHONE_TEL,
   CONTACT_EMAIL,
   ADDRESS_LINES,
   GOOGLE_RATING_TEXT,
@@ -26,21 +24,21 @@ export default function Home() {
           <h1 className={styles.heroTitle}>
             Unfallschaden <span className={styles.accent}>per Foto mit KI</span> einschätzen lassen
           </h1>
-          <p className={styles.heroLead}>
-            Fahrzeugschein und Fotos hochladen, in wenigen Minuten erhalten Sie eine unverbindliche
-            KI-Ersteinschätzung.
-          </p>
           <p className={styles.heroAbout}>
             Die KI wurde mit dem Fachwissen von Kfz-Sachverständigem Stefan Witmaier abgestimmt – auf Basis
             von 15 Jahren Praxiserfahrung. Die Einschätzung orientiert sich an seinem Wissen; nach seiner
             Erfahrung liefert sie mittlerweile sehr gute Ersteinschätzungen.
           </p>
+          <p className={styles.heroLead}>
+            Fahrzeugschein und Fotos hochladen, in wenigen Minuten erhalten Sie eine unverbindliche
+            KI-Ersteinschätzung.
+          </p>
 
           <ul className={styles.chips}>
-            <li><CheckIcon /> Kostenlos</li>
-            <li><CheckIcon /> Keine Registrierung</li>
-            <li><CheckIcon /> Unverbindlich</li>
             <li><CheckIcon /> Schnell</li>
+            <li><CheckIcon /> Kostenlos</li>
+            <li><CheckIcon /> Unverbindlich</li>
+            <li><CheckIcon /> Keine Registrierung</li>
           </ul>
 
           <a
@@ -72,10 +70,12 @@ export default function Home() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerCol}>
-            <a href={SITE_URL} className={styles.footerLogoLink} aria-label="Zur Website von Stefan Witmaier">
-              <img src={LOGO_URL} alt="Witmaier Fahrzeug-Ingenieurbüro" className={styles.footerLogo} />
-            </a>
-            <h2 className={styles.footerTitle}>Sachverständigenbüro Witmaier</h2>
+            <div className={styles.footerHead}>
+              <a href={SITE_URL} className={styles.footerLogoLink} aria-label="Zur Website von Stefan Witmaier">
+                <img src={LOGO_URL} alt="Witmaier Fahrzeug-Ingenieurbüro" className={styles.footerLogo} />
+              </a>
+              <h2 className={styles.footerTitle}>Sachverständigenbüro Witmaier</h2>
+            </div>
             <nav className={styles.footerNav} aria-label="Website">
               <a href={SITE_URL}>Startseite</a>
               <a href={SITE_URL}>Leistungen</a>
@@ -84,7 +84,9 @@ export default function Home() {
           </div>
 
           <div className={styles.footerCol}>
-            <h2 className={styles.footerTitle}>Kontakt</h2>
+            <div className={styles.footerHead}>
+              <h2 className={styles.footerTitle}>Kontakt</h2>
+            </div>
             <div className={styles.person}>
               <img src={PORTRAIT_URL} alt="Stefan Witmaier" className={styles.portrait} />
               <div>
@@ -94,13 +96,12 @@ export default function Home() {
             </div>
             <p className={styles.footerMuted}>{ADDRESS_LINES[1]}</p>
             <p className={styles.footerMuted}>{CONTACT_EMAIL}</p>
-            <a className={styles.footerPhone} href={PHONE_TEL}>
-              {PHONE_DISPLAY}
-            </a>
           </div>
 
           <div className={styles.footerCol}>
-            <h2 className={styles.footerTitle}>Infos</h2>
+            <div className={styles.footerHead}>
+              <h2 className={styles.footerTitle}>Infos</h2>
+            </div>
             <nav className={styles.footerNav} aria-label="Rechtliches">
               <a href={`${SITE_URL}/impressum`}>Impressum</a>
               <a href={`${SITE_URL}/datenschutz`}>Datenschutz</a>
@@ -110,6 +111,7 @@ export default function Home() {
         </div>
         <p className={styles.footerNote}>
           Die KI-Ersteinschätzung ist ein Zusatzangebot zu stefan-witmaier.de und ersetzt kein Gutachten.
+          Kein offizielles Gutachten.
         </p>
       </footer>
     </main>

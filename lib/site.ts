@@ -7,7 +7,7 @@ export const PHONE_TEL = "tel:+4917699808695";
 export const WHATSAPP_LINK = "https://wa.me/message/IU4AJTYVCNBFK1";
 // Nummern-Link fuer vorausgefuellte Nachrichten nach der Analyse
 export const WHATSAPP_NUMBER_LINK = "https://wa.me/4917699808695";
-export const CONTACT_EMAIL = "keo.kontakt@gmail.com";
+export const CONTACT_EMAIL = "schaden@witmaier-gutachten.de";
 export const ADDRESS_LINES = ["Sophie-Scholl-Str. 5", "71691 Freiberg am Neckar"];
 
 export const GOOGLE_RATING_TEXT = "5/5 Google (130+ Bewertungen)";

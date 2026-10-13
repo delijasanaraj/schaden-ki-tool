@@ -80,7 +80,7 @@
   font-size: 15px;
   line-height: 1.6;
   color: #b9bdcc;
-  margin: -8px 0 24px;
+  margin: 0 0 16px;
   max-width: 52ch;
   padding-left: 14px;
   border-left: 2px solid var(--color-gold);
@@ -251,9 +251,17 @@
   display: inline-block;
 }
 
+.footerHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
 .footerLogo {
-  width: 80px;
-  height: 80px;
+  display: block;
+  width: 48px;
+  height: 48px;
   box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.35);
   border-radius: 50%;
 }
@@ -318,19 +326,13 @@
   font-size: 15px;
 }
 
-.footerPhone {
-  color: var(--color-key1);
-  font-weight: 800;
-  text-decoration: none;
-  font-size: 16px;
-}
-
 .footerNote {
   max-width: 1200px;
   margin: 36px auto 0;
   padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.5;
   color: #7d8194;
 }
 
