@@ -6,7 +6,7 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
 
 ## Was hier bereits funktioniert
 
-- Foto-Upload (1–20 Bilder, JPEG/PNG/WebP, Vorschau, Entfernen, clientseitige Verkleinerung,
+- Foto-Upload (1–15 Bilder, JPEG/PNG/WebP, Vorschau, Entfernen, clientseitige Verkleinerung,
   Gesamtgrößen-Prüfung vor dem Absenden)
 - Fahrzeugschein-Upload (optional): liest Hersteller, Modell und Baujahr automatisch aus und füllt
   das Formular aus - extrahiert bewusst **keine** Halterdaten, Anschrift, Kennzeichen oder VIN
@@ -85,7 +85,7 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
 - Auf https://console.anthropic.com registrieren
 - Unter "API Keys" einen neuen Schlüssel erzeugen
 - Abrechnung ist nutzungsabhängig (Pay-per-Use), kein Abo. **Kostenschätzung wurde nach oben angepasst:**
-  Mit `claude-opus-5`, `effort: high` und bis zu 20 Fotos pro Analyse liegt eine realistische Spanne bei
+  Mit `claude-opus-5`, `effort: high` und bis zu 15 Fotos pro Analyse liegt eine realistische Spanne bei
   ca. 0,05–0,25 € pro Analyse, je nach Fotoanzahl - deutlich mehr als die ursprüngliche Schätzung mit
   `claude-sonnet-5` und 8 Fotos (ca. 0,01–0,03 €). Das Fahrzeugschein-Auslesen (separates, günstiges
   Modell `claude-haiku-4-5`) kostet nur Bruchteile eines Cents pro Vorgang. Nach den ersten echten
@@ -238,7 +238,7 @@ zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genau
    Fehlermeldung, kein Absturz der Seite
 6. Echtes Fahrzeugschein-Foto hochladen → erwartet: Hersteller/Modell/Baujahr werden übernommen, Halter-
    und Kennzeichendaten tauchen nirgends im Ergebnis oder in Logs auf
-7. 15-20 Fotos gleichzeitig hochladen → erwartet: Analyse läuft durch oder zeigt bei Zeit-/Größenlimit eine
+7. 15 Fotos (Maximum) gleichzeitig hochladen → erwartet: Analyse läuft durch oder zeigt bei Zeit-/Größenlimit eine
    verständliche Fehlermeldung, nie eine weiße/abgestürzte Seite
 8. Reparaturkostenspanne mit `COST_ESTIMATE_MULTIPLIER=1` in `.env.local` vs. Standard `3.0` vergleichen,
    um die Kalibrierung sichtbar zu machen

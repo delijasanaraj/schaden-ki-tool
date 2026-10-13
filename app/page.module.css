@@ -69,6 +69,7 @@
 }
 
 .heroLead {
+  font-weight: 700;
   font-size: 18px;
   line-height: 1.7;
   color: #d3d6e0;
@@ -113,7 +114,8 @@
   gap: 12px;
   color: #fff;
   text-decoration: none;
-  padding: 10px 20px 10px 10px;
+  padding: 10px 24px 10px 10px;
+  max-width: 100%;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.14);

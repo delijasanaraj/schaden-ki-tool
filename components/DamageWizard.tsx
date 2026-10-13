@@ -376,11 +376,11 @@ export default function DamageWizard() {
                 <span>
                   {registrationDetected
                     ? "Erkannt, tippen zum Ersetzen"
-                    : "Optional · füllt Fahrzeugdaten aus · auch per Drag & Drop"}
+                    : "Liest Fahrzeugdaten vom Fahrzeugschein automatisch ab"}
                 </span>
               </span>
               {!registrationDetected && !registrationExtracting && (
-                <span className={`${styles.tileCta} ${styles.tileCtaLight}`}>Foto auswählen</span>
+                <span className={`${styles.tileCta} ${styles.tileCtaLight}`}>Fahrzeugschein hochladen</span>
               )}
             </label>
 
@@ -419,11 +419,11 @@ export default function DamageWizard() {
                 <span>
                   {photos.length > 0
                     ? `${photos.length} von max. ${MAX_IMAGES} Fotos · weitere hinzufügen`
-                    : "Empfohlen 3–6 Fotos · auch per Drag & Drop"}
+                    : `Bis zu ${MAX_IMAGES} Fotos möglich (auch per Drag & Drop)`}
                 </span>
               </span>
               <span className={styles.tileCta}>
-                <CameraIcon size={18} /> {photos.length > 0 ? "Weitere Fotos" : "Fotos auswählen"}
+                <CameraIcon size={18} /> {photos.length > 0 ? "Weitere Fotos" : "Schadenfotos hochladen"}
               </span>
             </div>
           </div>
@@ -457,7 +457,8 @@ export default function DamageWizard() {
           )}
 
           <p className={styles.tip}>
-            <strong>Tipp:</strong> ganzes Fahrzeug, Schaden aus mehreren Winkeln und 1–2 Nahaufnahmen.
+            <strong>Tipp:</strong> Bitte den Schaden aus mehreren Winkeln fotografieren, dazu 2–3
+            Nahaufnahmen plus das ganze Fahrzeug.
           </p>
 
           <button
@@ -468,7 +469,7 @@ export default function DamageWizard() {
           >
             <span>
               {photosMissing > 0
-                ? `Noch ${photosMissing} Foto${photosMissing > 1 ? "s" : ""} hochladen`
+                ? "Alle Fotos jetzt hochladen"
                 : registrationExtracting
                 ? "Fahrzeugschein wird ausgelesen …"
                 : "Weiter zur Analyse"}

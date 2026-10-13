@@ -10,7 +10,7 @@ export const WHATSAPP_NUMBER_LINK = "https://wa.me/4917699808695";
 export const CONTACT_EMAIL = "schaden@witmaier-gutachten.de";
 export const ADDRESS_LINES = ["Sophie-Scholl-Str. 5", "71691 Freiberg am Neckar"];
 
-export const GOOGLE_RATING_TEXT = "5/5 Google (130+ Bewertungen)";
+export const GOOGLE_RATING_TEXT = "5,0/5,0 (schon über 130 Kundenbewertungen)";
 
 // Bilder liegen lokal in public/images (vom Kunden bereitgestellt)
 export const LOGO_URL = "/images/logo-witmaier.png";

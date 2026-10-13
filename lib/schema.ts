@@ -54,7 +54,7 @@ export const vehicleDataSchema = z.object({
 
 export type VehicleData = z.infer<typeof vehicleDataSchema>;
 
-export const MAX_IMAGES = 20;
+export const MAX_IMAGES = 15;
 export const MIN_IMAGES = 1;
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const ACCEPTED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];

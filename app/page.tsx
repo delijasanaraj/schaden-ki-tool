@@ -30,8 +30,8 @@ export default function Home() {
             Erfahrung liefert sie mittlerweile sehr gute Ersteinschätzungen.
           </p>
           <p className={styles.heroLead}>
-            Fahrzeugschein und Fotos hochladen, in wenigen Minuten erhalten Sie eine unverbindliche
-            KI-Ersteinschätzung.
+            Fahrzeugschein und Fotos hochladen und in wenigen Minuten erhalten Sie eine unverbindliche
+            KI-Einschätzung.
           </p>
 
           <ul className={styles.chips}>
