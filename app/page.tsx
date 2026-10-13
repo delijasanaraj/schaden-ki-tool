@@ -22,23 +22,23 @@ export default function Home() {
         <div className={styles.heroInner}>
           <div className={styles.heroText}>
           <h1 className={styles.heroTitle}>
-            Unfallschaden <span className={styles.accent}>per Foto mit KI</span> einschätzen lassen
+            Unfallschaden? Jetzt kostenlos <span className={styles.accent}>per KI</span> einschätzen lassen.
           </h1>
           <p className={styles.heroAbout}>
-            Die KI wurde mit dem Fachwissen von Kfz-Sachverständigem Stefan Witmaier abgestimmt – auf Basis
-            von 15 Jahren Praxiserfahrung. Die Einschätzung orientiert sich an seinem Wissen; nach seiner
-            Erfahrung liefert sie mittlerweile sehr gute Ersteinschätzungen.
+            Unsere KI wurde in Zusammenarbeit mit Kfz-Sachverständigem Stefan Witmaier und auf Grundlage
+            seiner über 15-jährigen Praxiserfahrung abgestimmt. Sie ermöglicht eine schnelle, unverbindliche
+            Ersteinschätzung Ihres Fahrzeugschadens.
           </p>
           <p className={styles.heroLead}>
-            Fahrzeugschein und Fotos hochladen und in wenigen Minuten erhalten Sie eine unverbindliche
-            KI-Einschätzung.
+            Laden Sie einfach Ihren Fahrzeugschein und einige Schadensfotos hoch. Unsere KI analysiert die
+            Angaben und erstellt in wenigen Minuten eine erste Einschätzung Ihres Fahrzeugschadens.
           </p>
 
           <ul className={styles.chips}>
-            <li><CheckIcon /> Schnell</li>
             <li><CheckIcon /> Kostenlos</li>
+            <li><CheckIcon /> In wenigen Minuten</li>
             <li><CheckIcon /> Unverbindlich</li>
-            <li><CheckIcon /> Keine Registrierung</li>
+            <li><CheckIcon /> Ohne Registrierung</li>
           </ul>
 
           <a

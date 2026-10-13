@@ -319,8 +319,6 @@ export default function DamageWizard() {
   )}&body=${encodeURIComponent(contactSummary)}`;
   const whatsappHref = `${WHATSAPP_NUMBER_LINK}?text=${encodeURIComponent(contactSummary)}`;
 
-  const photosMissing = Math.max(0, MIN_IMAGES - photos.length);
-
   return (
     <div className={styles.wizard} ref={cardRef}>
       {(step === "upload" || step === "details") && (
@@ -371,16 +369,16 @@ export default function DamageWizard() {
                     ? "Wird ausgelesen …"
                     : registrationDetected
                     ? registrationDetected
-                    : "Fahrzeugschein"}
+                    : "Fahrzeugschein hochladen"}
                 </strong>
                 <span>
                   {registrationDetected
                     ? "Erkannt, tippen zum Ersetzen"
-                    : "Liest Fahrzeugdaten vom Fahrzeugschein automatisch ab"}
+                    : "Fahrzeugdaten automatisch erfassen lassen."}
                 </span>
               </span>
               {!registrationDetected && !registrationExtracting && (
-                <span className={`${styles.tileCta} ${styles.tileCtaLight}`}>Fahrzeugschein hochladen</span>
+                <span className={`${styles.tileCta} ${styles.tileCtaLight}`}>Fahrzeugschein auswählen</span>
               )}
             </label>
 
@@ -415,15 +413,15 @@ export default function DamageWizard() {
                 <CameraIcon />
               </span>
               <span className={styles.tileText}>
-                <strong>Schadenfotos hochladen</strong>
+                <strong>Fotos Ihres Fahrzeugschadens</strong>
                 <span>
                   {photos.length > 0
                     ? `${photos.length} von max. ${MAX_IMAGES} Fotos · weitere hinzufügen`
-                    : `Bis zu ${MAX_IMAGES} Fotos möglich (auch per Drag & Drop)`}
+                    : `Laden Sie bis zu ${MAX_IMAGES} Fotos aus verschiedenen Perspektiven hoch.`}
                 </span>
               </span>
               <span className={styles.tileCta}>
-                <CameraIcon size={18} /> {photos.length > 0 ? "Weitere Fotos" : "Schadenfotos hochladen"}
+                <CameraIcon size={18} /> {photos.length > 0 ? "Weitere Fotos" : "Schadensfotos auswählen"}
               </span>
             </div>
           </div>
@@ -457,8 +455,8 @@ export default function DamageWizard() {
           )}
 
           <p className={styles.tip}>
-            <strong>Tipp:</strong> Bitte den Schaden aus mehreren Winkeln fotografieren, dazu 2–3
-            Nahaufnahmen plus das ganze Fahrzeug.
+            <strong>Tipp:</strong> Fotografieren Sie den Schaden aus verschiedenen Perspektiven –
+            idealerweise mit Nahaufnahmen und einer Gesamtansicht des Fahrzeugs.
           </p>
 
           <button
@@ -468,14 +466,15 @@ export default function DamageWizard() {
             onClick={() => goTo("details")}
           >
             <span>
-              {photosMissing > 0
-                ? "Alle Fotos jetzt hochladen"
-                : registrationExtracting
-                ? "Fahrzeugschein wird ausgelesen …"
-                : "Weiter zur Analyse"}
+              {registrationExtracting ? "Fahrzeugschein wird ausgelesen …" : "Weiter zur KI-Schadeneinschätzung"}
             </span>
             <ArrowIcon />
           </button>
+
+          <p className={styles.legalHint}>
+            Die KI-Einschätzung dient zur ersten Orientierung und ersetzt kein professionelles
+            Kfz-Schadengutachten.
+          </p>
         </section>
       )}
 
@@ -864,6 +863,19 @@ function ResultView({
         </div>
       )}
 
+      <a
+        className={styles.goldBtn}
+        href="#anfrage"
+        onClick={(e) => {
+          e.preventDefault();
+          track("Ergebnis-CTA geklickt");
+          document.getElementById("anfrage")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }}
+      >
+        <span>Schaden professionell prüfen lassen – kostenlos beraten lassen</span>
+        <ArrowIcon />
+      </a>
+
       <details className={styles.more}>
         <summary>Details zur Einschätzung</summary>
         <div className={styles.moreBody}>
@@ -907,7 +919,7 @@ function ResultView({
         verdeckte Schäden können unentdeckt bleiben.
       </p>
 
-      <div className={styles.contactCta}>
+      <div className={styles.contactCta} id="anfrage">
         <h3>Jetzt vom Gutachter prüfen lassen</h3>
         <p>
           Stefan Witmaier prüft den Schaden persönlich und bespricht mit Ihnen die nächsten Schritte. Für
