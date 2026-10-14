@@ -77,6 +77,11 @@
   max-width: 46ch;
 }
 
+.heroLeadLabel {
+  display: block;
+  margin-bottom: 4px;
+}
+
 .heroAbout {
   font-size: 15px;
   line-height: 1.6;
