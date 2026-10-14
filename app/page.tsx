@@ -25,16 +25,12 @@ export default function Home() {
             17 Jahre Erfahrung. Jetzt <span className={styles.accent}>mit KI</span> für Sie verfügbar.
           </h1>
           <p className={styles.heroAbout}>
-            Wir haben unser Fachwissen aus 17 Jahren Kfz-Schadenbegutachtung in die Entwicklung unseres
-            eigenen KI-Tools einfließen lassen. So machen wir unsere Erfahrung für Sie direkt nutzbar:
-            Erhalten Sie auf Knopfdruck eine erste Einschätzung Ihres Fahrzeugschadens – schnell, kostenlos
-            und unverbindlich.
+            Unser Fachwissen aus 17 Jahren Kfz-Schadenbegutachtung steckt in unserem eigenen KI-Tool – für
+            Ihre erste Einschätzung auf Knopfdruck.
           </p>
           <p className={styles.heroLead}>
-            <span className={styles.heroLeadLabel}>So einfach funktioniert’s:</span>
-            Laden Sie Ihren Fahrzeugschein und einige Fotos des Schadens hoch. Unsere KI analysiert die
-            Angaben und liefert Ihnen innerhalb weniger Minuten eine erste Orientierung zum Schadenumfang –
-            ganz ohne Registrierung oder Verpflichtungen.
+            Fahrzeugschein und Schadenfotos hochladen – in wenigen Minuten erhalten Sie Ihre erste
+            Orientierung.
           </p>
 
           <ul className={styles.chips}>

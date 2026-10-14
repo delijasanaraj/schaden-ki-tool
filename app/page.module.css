@@ -8,7 +8,7 @@
 .hero {
   position: relative;
   background: var(--color-black);
-  padding: 64px 20px 150px;
+  padding: 40px 20px 132px;
   color: #fff;
   isolation: isolate;
   overflow: hidden;
@@ -60,7 +60,7 @@
   font-weight: 600;
   line-height: 1.26;
   letter-spacing: -0.4px;
-  margin: 0 0 22px;
+  margin: 0 0 16px;
   text-wrap: balance;
 }
 
@@ -73,20 +73,15 @@
   font-size: 18px;
   line-height: 1.7;
   color: #d3d6e0;
-  margin: 0 0 26px;
-  max-width: 46ch;
-}
-
-.heroLeadLabel {
-  display: block;
-  margin-bottom: 4px;
+  margin: 0 0 18px;
+  max-width: none;
 }
 
 .heroAbout {
   font-size: 15px;
   line-height: 1.6;
   color: #b9bdcc;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   max-width: 52ch;
   padding-left: 14px;
   border-left: 2px solid var(--color-gold);
@@ -95,7 +90,7 @@
 .chips {
   list-style: none;
   padding: 0;
-  margin: 0 0 30px;
+  margin: 0 0 20px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px 22px;
