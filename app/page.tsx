@@ -29,8 +29,8 @@ export default function Home() {
             Ihre erste Einschätzung auf Knopfdruck.
           </p>
           <p className={styles.heroLead}>
-            Fahrzeugschein und Schadenfotos hochladen – in wenigen Minuten erhalten Sie Ihre erste
-            Orientierung.
+            Fahrzeugschein und Schadenfotos hochladen – in wenigen Minuten erhalten Sie Ihre
+            unverbindliche Schadenkalkulation.
           </p>
 
           <ul className={styles.chips}>
