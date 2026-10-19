@@ -108,11 +108,16 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
   nächste Schritt ein Wechsel auf den kostenpflichtigen Vercel-Pro-Plan (erlaubt längere Funktionslaufzeiten)
   - das würde ich vorher mit dir besprechen, bevor ich es umsetze, da es Kosten verursacht.
 
-### 3. Domain verbinden (optional, später)
-- In Vercel unter "Settings → Domains" z. B. `schaden-check.stefan-witmaier.de` hinzufügen
-- Bei deinem Domain-Anbieter (dort, wo stefan-witmaier.de verwaltet wird) einen CNAME-Eintrag auf die von
-  Vercel angezeigte Zieladresse setzen
-- Bis dahin funktioniert die Seite unter der von Vercel automatisch vergebenen `*.vercel.app`-Adresse
+### 3. Domain verbinden
+- Gewählte Domain (Kundenwunsch, 19.10.2026): **`fahrzeug-schadenrechner.stefan-witmaier.de`**. Im Vercel-Projekt
+  bereits angelegt. Die Domain `stefan-witmaier.de` liegt bei Strato (Nameserver `*.rzone.de`), der DNS-Eintrag
+  muss dort gesetzt werden: **A-Record** `fahrzeug-schadenrechner` → `76.76.21.21` (alternativ CNAME auf
+  `cname.vercel-dns.com`). Die bestehenden Einträge der Hauptseite (Onepage) nicht anfassen.
+- Danach stellt Vercel das SSL-Zertifikat automatisch aus. Erst wenn die Domain erreichbar ist, folgen die
+  SEO-Schritte: `metadataBase`/Canonical auf die neue Domain, `robots` von `index: false` auf `index: true`
+  (steht derzeit bewusst auf noindex, siehe `app/layout.tsx`), Weiterleitung der `*.vercel.app`-Adresse auf
+  die neue Domain (sonst Duplicate Content), `sitemap.xml`, sowie der Link auf der Onepage-Seite
+  (`ctaHref`) auf die neue Domain umstellen.
 
 ### 4. Rechtliches prüfen (nicht von mir geprüft, echte rechtliche Prüfung nötig)
 - Die Datenschutzerklärung von stefan-witmaier.de muss ergänzt werden: Fotos, Fahrzeugschein-Bilder und
