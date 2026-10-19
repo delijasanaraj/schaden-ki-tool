@@ -113,11 +113,14 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
   bereits angelegt. Die Domain `stefan-witmaier.de` liegt bei Strato (Nameserver `*.rzone.de`), der DNS-Eintrag
   muss dort gesetzt werden: **A-Record** `fahrzeug-schadenrechner` → `76.76.21.21` (alternativ CNAME auf
   `cname.vercel-dns.com`). Die bestehenden Einträge der Hauptseite (Onepage) nicht anfassen.
-- Danach stellt Vercel das SSL-Zertifikat automatisch aus. Erst wenn die Domain erreichbar ist, folgen die
-  SEO-Schritte: `metadataBase`/Canonical auf die neue Domain, `robots` von `index: false` auf `index: true`
-  (steht derzeit bewusst auf noindex, siehe `app/layout.tsx`), Weiterleitung der `*.vercel.app`-Adresse auf
-  die neue Domain (sonst Duplicate Content), `sitemap.xml`, sowie der Link auf der Onepage-Seite
-  (`ctaHref`) auf die neue Domain umstellen.
+- Stand 19.10.2026: DNS (CNAME → `cname.vercel-dns.com`) gesetzt, Zertifikat ausgestellt, Domain live.
+- **SEO umgesetzt:** Seite ist für Google freigegeben (`robots: index/follow` in `app/layout.tsx`),
+  Canonical und Open-Graph zeigen auf `https://fahrzeug-schadenrechner.stefan-witmaier.de` (`TOOL_URL` in
+  `lib/site.ts`), `app/robots.ts` (sperrt nur `/api/`), `app/sitemap.ts`, und `next.config.mjs` leitet die alte
+  Adresse `schaden-ki-tool.vercel.app` dauerhaft (308) auf die neue Domain weiter. Einreichen bei Google:
+  Domain in der Google Search Console als Property hinzufügen und die Sitemap eintragen (macht der Kunde, braucht
+  sein Google-Konto).
+- Der Link im Onepage-Button (`ctaHref`) wurde auf die neue Domain umgestellt (siehe Projekt-Notizen).
 
 ### 4. Rechtliches prüfen (nicht von mir geprüft, echte rechtliche Prüfung nötig)
 - Die Datenschutzerklärung von stefan-witmaier.de muss ergänzt werden: Fotos, Fahrzeugschein-Bilder und
@@ -145,8 +148,7 @@ Ich darf keine Konten anlegen oder Zahlungsdaten hinterlegen – das musst du se
 
 ### 5. Vor dem Live-Schalten
 - Mit echten Testfotos in mehreren Szenarien testen (siehe Testfälle unten)
-- `robots: { index: false, follow: false }` in `app/layout.tsx` bewusst so gelassen, bis alles final
-  geprüft ist – danach ggf. auf `index: true` umstellen
+- `robots` steht seit 19.10.2026 auf `index: true` (Google-Freigabe, siehe Abschnitt Domain)
 
 ## Kostenkalibrierung der Reparaturkostenspanne
 

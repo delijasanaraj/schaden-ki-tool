@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { TOOL_URL } from "@/lib/site";
+
+const TITLE = "Fahrzeugschaden online berechnen – KI-Schadenrechner | WITMAIER";
+const DESCRIPTION =
+  "Laden Sie Fotos Ihres Fahrzeugschadens hoch und erhalten Sie eine unverbindliche KI-gestützte Ersteinschätzung. Für eine professionelle Schadenbewertung steht Ihnen Kfz-Gutachter Stefan Witmaier persönlich zur Verfügung.";
 
 export const metadata: Metadata = {
-  title: "Fahrzeugschaden online berechnen – KI-Schadenrechner | WITMAIER",
-  description:
-    "Laden Sie Fotos Ihres Fahrzeugschadens hoch und erhalten Sie eine unverbindliche KI-gestützte Ersteinschätzung. Für eine professionelle Schadenbewertung steht Ihnen Kfz-Gutachter Stefan Witmaier persönlich zur Verfügung.",
-  robots: { index: false, follow: false },
+  metadataBase: new URL(TOOL_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    url: "/",
+    siteName: "WITMAIER",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,8 @@
 // Zentrale Angaben der Hauptseite stefan-witmaier.de - hier aendern, wirkt ueberall.
 
 export const SITE_URL = "https://stefan-witmaier.de";
+// Eigene Adresse dieses Tools (Hauptadresse fuer Google, Canonical und Sitemap)
+export const TOOL_URL = "https://fahrzeug-schadenrechner.stefan-witmaier.de";
 export const PHONE_DISPLAY = "+49 176 998 086 95";
 export const PHONE_TEL = "tel:+4917699808695";
 // Allgemeiner WhatsApp-Link wie auf der Website
