@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fahrzeugschaden online einschätzen lassen | KI-Ersteinschätzung",
+  title: "Fahrzeugschaden online berechnen – KI-Schadenrechner | WITMAIER",
   description:
     "Laden Sie Fotos Ihres Fahrzeugschadens hoch und erhalten Sie eine unverbindliche KI-gestützte Ersteinschätzung. Für eine professionelle Schadenbewertung steht Ihnen Kfz-Gutachter Stefan Witmaier persönlich zur Verfügung.",
   robots: { index: false, follow: false },

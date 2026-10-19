@@ -22,15 +22,16 @@ export default function Home() {
         <div className={styles.heroInner}>
           <div className={styles.heroText}>
           <h1 className={styles.heroTitle}>
-            17 Jahre Erfahrung. Jetzt <span className={styles.accent}>mit KI</span> für Sie verfügbar.
+            <span className={styles.accent}>KI-Schadenrechner</span> – Fahrzeugschaden kostenlos online
+            einschätzen
           </h1>
+          <p className={styles.heroLead}>
+            Für Pkw, Lkw, Motorräder und Transporter. Erhalten Sie in wenigen Schritten eine erste
+            KI-gestützte Einschätzung Ihres Fahrzeugschadens.
+          </p>
           <p className={styles.heroAbout}>
             Unser Fachwissen aus 17 Jahren Kfz-Schadenbegutachtung steckt in unserem eigenen KI-Tool – für
             Ihre erste Einschätzung auf Knopfdruck.
-          </p>
-          <p className={styles.heroLead}>
-            Fahrzeugschein und Schadenfotos hochladen – in wenigen Minuten erhalten Sie Ihre
-            unverbindliche Schadenkalkulation.
           </p>
 
           <ul className={styles.chips}>

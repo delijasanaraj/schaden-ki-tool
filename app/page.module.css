@@ -56,9 +56,9 @@
 }
 
 .heroTitle {
-  font-size: 46px;
+  font-size: 36px;
   font-weight: 600;
-  line-height: 1.26;
+  line-height: 1.25;
   letter-spacing: -0.4px;
   margin: 0 0 16px;
   text-wrap: balance;
@@ -156,14 +156,14 @@
     padding: 28px 16px 128px;
   }
   .hero {
-    padding-top: 140px;
+    padding-top: 100px;
   }
   .heroPhoto {
-    background-size: auto 440px;
-    background-position: 42% -50px;
+    background-size: auto 380px;
+    background-position: 42% -40px;
   }
   .hero::after {
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0px, rgba(0, 0, 0, 0.25) 80px, rgba(0, 0, 0, 0.88) 220px, #000 370px, #000 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0px, rgba(0, 0, 0, 0.25) 60px, rgba(0, 0, 0, 0.88) 170px, #000 290px, #000 100%);
   }
   .heroAbout,
   .heroLead {
@@ -173,7 +173,7 @@
     align-self: flex-start;
   }
   .heroTitle {
-    font-size: 30px;
+    font-size: 26px;
     margin-bottom: 16px;
   }
   .heroLead {
