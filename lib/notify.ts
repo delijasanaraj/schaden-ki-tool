@@ -30,3 +30,30 @@ export async function sendNotification(subject: string, text: string): Promise<b
     return false;
   }
 }
+
+// Optionale Push-Benachrichtigung aufs Handy ueber ntfy (https://ntfy.sh, kostenlos, kein Konto
+// noetig - die ntfy-App abonniert ein Thema). Wird nur gesendet, wenn NTFY_TOPIC gesetzt ist.
+// Enthaelt bewusst KEINE Kontaktdaten: Das Thema ist nur durch seinen Namen geschuetzt, die
+// Kontaktdaten kommen ausschliesslich per E-Mail.
+export async function sendPush(title: string, message: string): Promise<boolean> {
+  const topic = process.env.NTFY_TOPIC;
+  if (!topic) return false;
+  const server = (process.env.NTFY_SERVER || "https://ntfy.sh").replace(/\/+$/, "");
+
+  try {
+    const res = await fetch(server, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, title: singleLine(title), message: message.slice(0, 500), priority: 4, tags: ["car"] }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      console.error("[notify] ntfy-Fehler:", res.status);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[notify] Push fehlgeschlagen:", err instanceof Error ? err.message : err);
+    return false;
+  }
+}

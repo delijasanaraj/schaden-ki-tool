@@ -16,7 +16,7 @@ import {
 } from "@/lib/schema";
 import { SYSTEM_PROMPT, buildUserContext } from "@/lib/prompt";
 import { cleanLead, leadErrors, type LeadData } from "@/lib/lead";
-import { sendNotification } from "@/lib/notify";
+import { sendNotification, sendPush } from "@/lib/notify";
 import { clientIp, createRateLimiter } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
@@ -235,10 +235,17 @@ export async function POST(req: NextRequest) {
 
     // Lead-Benachrichtigung startet VOR der Analyse, damit der Kontakt auch dann beim
     // Gutachter ankommt, wenn die Analyse spaeter in ein Timeout laeuft.
-    leadDelivery = sendNotification(
-      `Neuer KI-Lead: ${lead.firstName} ${lead.lastName}`,
-      formatLeadMail(lead, vehicleData, files.length)
-    ).then((ok) => {
+    leadDelivery = Promise.all([
+      sendNotification(
+        `Neuer KI-Lead: ${lead.firstName} ${lead.lastName}`,
+        formatLeadMail(lead, vehicleData, files.length)
+      ),
+      // Push ohne Kontaktdaten (die stehen nur in der E-Mail)
+      sendPush(
+        "Neuer KI-Lead",
+        `${[vehicleData.make, vehicleData.model].filter(Boolean).join(" ") || "Fahrzeug unbekannt"} · ${files.length} Foto${files.length === 1 ? "" : "s"}. Kontaktdaten stehen in der E-Mail.`
+      ),
+    ]).then(([ok]) => {
       if (!ok) {
         // Notnagel ohne konfigurierten E-Mail-Dienst: Lead im Laufzeit-Log festhalten
         // (kurze Aufbewahrung auf dem Hobby-Plan, siehe README).

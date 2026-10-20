@@ -56,6 +56,11 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
 
 ## Was hier bewusst NICHT implementiert ist
 
+- **Push aufs Handy (optional, seit 20.10.2026):** Ist `NTFY_TOPIC` gesetzt, geht bei jeder Nutzung zusätzlich eine
+  Push-Nachricht über ntfy (https://ntfy.sh, kostenlos) raus, z. B. "Neuer KI-Lead – Audi A6 · 5 Fotos". Sie enthält
+  bewusst keine Kontaktdaten, da ein ntfy-Thema nur durch seinen (langen, zufälligen) Namen geschützt ist; die Daten
+  stehen nur in der E-Mail. WhatsApp-Benachrichtigungen sind nicht eingebaut (siehe Projekt-Notizen: erfordert
+  WhatsApp-Business-API mit Freigabe und Kosten, Kontaktdaten würden zusätzlich über Meta laufen).
 - **Keine dauerhafte Speicherung** von Fotos, Fahrzeugschein-Bildern oder Ergebnissen (kein
   Datenbank-Anschluss). Alles wird nur im Arbeitsspeicher der Anfrage verarbeitet und danach verworfen.
 - **Keine belastbare Ratenbegrenzung.** Die eingebaute IP-Zählung ist nur ein Notbehelf (siehe unten).
