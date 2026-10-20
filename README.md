@@ -46,7 +46,7 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
   an den Gutachter aus (`lib/notify.ts`, Resend): E-Mail 1 "Neuer KI-Lead" mit Kontaktdaten und Fahrzeugdaten
   (wird VOR der Analyse gesendet, kommt also auch bei einem Timeout an), E-Mail 2 "KI-Ergebnis" mit
   angezeigter Schadenssumme und Zusammenfassung. Es werden keine Fotos versendet und nichts in einer
-  Datenbank gespeichert. **Voraussetzung:** `RESEND_API_KEY` und `LEAD_NOTIFY_EMAIL` in Vercel setzen (siehe
+  Datenbank gespeichert. **Voraussetzung:** `LEAD_NOTIFY_EMAIL` plus entweder `SMTP_USER`/`SMTP_PASSWORD` (z. B. Gmail mit App-Passwort, ohne DNS, mehrere Empfänger, hat Vorrang) oder `RESEND_API_KEY` in Vercel setzen (siehe
   `.env.example`). Ohne diese Werte wird NICHTS versendet - der Lead steht dann nur als
   `[LEAD-NICHT-ZUGESTELLT]` im kurzlebigen Vercel-Laufzeit-Log. Mit der Standard-Absenderadresse
   `onboarding@resend.dev` liefert Resend nur an die E-Mail des eigenen Resend-Kontos; für andere Empfänger
