@@ -45,7 +45,8 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
   keine Analyse, keine Schadenssumme), nicht nur im Browser. Jede Nutzung löst eine E-Mail-Benachrichtigung
   an den Gutachter aus (`lib/notify.ts`, Resend): E-Mail 1 "Neuer KI-Lead" mit Kontaktdaten und Fahrzeugdaten
   (wird VOR der Analyse gesendet, kommt also auch bei einem Timeout an), E-Mail 2 "KI-Ergebnis" mit
-  angezeigter Schadenssumme und Zusammenfassung. Es werden keine Fotos versendet und nichts in einer
+  angezeigter Schadenssumme und Zusammenfassung. E-Mail 1 enthält die (bereinigten, EXIF-/GPS-freien) Schadenfotos als Anhang
+  (`Foto-01.jpg` …); scheitert der Versand mit Anhängen, wird die Mail einmal ohne Fotos wiederholt. Es wird nichts in einer
   Datenbank gespeichert. **Voraussetzung:** `LEAD_NOTIFY_EMAIL` plus entweder `SMTP_USER`/`SMTP_PASSWORD` (z. B. Gmail mit App-Passwort, ohne DNS, mehrere Empfänger, hat Vorrang) oder `RESEND_API_KEY` in Vercel setzen (siehe
   `.env.example`). Ohne diese Werte wird NICHTS versendet - der Lead steht dann nur als
   `[LEAD-NICHT-ZUGESTELLT]` im kurzlebigen Vercel-Laufzeit-Log. Mit der Standard-Absenderadresse
@@ -61,8 +62,10 @@ muss – dafür bietet Onepage MCP kein Werkzeug.
   bewusst keine Kontaktdaten, da ein ntfy-Thema nur durch seinen (langen, zufälligen) Namen geschützt ist; die Daten
   stehen nur in der E-Mail. WhatsApp-Benachrichtigungen sind nicht eingebaut (siehe Projekt-Notizen: erfordert
   WhatsApp-Business-API mit Freigabe und Kosten, Kontaktdaten würden zusätzlich über Meta laufen).
-- **Keine dauerhafte Speicherung** von Fotos, Fahrzeugschein-Bildern oder Ergebnissen (kein
-  Datenbank-Anschluss). Alles wird nur im Arbeitsspeicher der Anfrage verarbeitet und danach verworfen.
+- **Keine Speicherung durch die App selbst** (kein Datenbank-Anschluss): Alles wird nur im Arbeitsspeicher der
+  Anfrage verarbeitet und danach verworfen. **Ausnahme:** Die Schadenfotos und Kontaktdaten gehen per E-Mail an
+  den Gutachter und liegen damit in dessen Postfach (und im Gesendet-Ordner des Absenderkontos). Der
+  Fahrzeugschein wird weiterhin nur zum Auslesen verwendet und nirgends gespeichert oder verschickt.
 - **Keine belastbare Ratenbegrenzung.** Die eingebaute IP-Zählung ist nur ein Notbehelf (siehe unten).
 - **Keine automatischen Löschfristen**, weil nichts gespeichert wird, gibt es nichts zu löschen – das
   ist zugleich die einfachste Umsetzung von Datenminimierung.

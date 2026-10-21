@@ -86,7 +86,7 @@ function formatLeadMail(lead: LeadData, vehicle: VehicleData, photoCount: number
     `E-Mail: ${lead.email}`,
     "",
     formatVehicle(vehicle),
-    `Anzahl Fotos: ${photoCount}`,
+    `Fotos: ${photoCount} (siehe Anhang)`,
     "",
     `Zeitpunkt: ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}`,
   ].join("\n");
@@ -238,7 +238,13 @@ export async function POST(req: NextRequest) {
     leadDelivery = Promise.all([
       sendNotification(
         `Neuer KI-Lead: ${lead.firstName} ${lead.lastName}`,
-        formatLeadMail(lead, vehicleData, files.length)
+        formatLeadMail(lead, vehicleData, files.length),
+        // Die bereits bereinigten Fotos (ohne EXIF/GPS), wie sie auch an die KI gehen
+        processedImages.map((b64, i) => ({
+          filename: `Foto-${String(i + 1).padStart(2, "0")}.jpg`,
+          content: Buffer.from(b64, "base64"),
+          contentType: "image/jpeg",
+        }))
       ),
       // Push ohne Kontaktdaten (die stehen nur in der E-Mail)
       sendPush(

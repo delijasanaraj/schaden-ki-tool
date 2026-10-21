@@ -708,7 +708,7 @@ export default function DamageWizard() {
             />
             <span>
               Ich bin damit einverstanden, dass mich Stefan Witmaier zu meiner Anfrage telefonisch, per
-              E-Mail oder WhatsApp kontaktieren darf und dass meine Kontaktdaten sowie die Eckdaten meiner
+              E-Mail oder WhatsApp kontaktieren darf und dass meine Kontaktdaten, meine hochgeladenen Schadenfotos sowie die Eckdaten meiner
               Anfrage dafür an ihn übermittelt werden. Diese Einwilligung kann ich jederzeit widerrufen.
             </span>
           </label>
