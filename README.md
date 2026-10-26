@@ -241,6 +241,18 @@ zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genau
 - **Kein Monitoring/Alerting** bei Fehlern oder ungewöhnlich hohem Verbrauch – im Anthropic-Dashboard
   gelegentlich manuell prüfen oder ein Ausgaben-Limit im Anthropic-Konto setzen.
 
+## Tägliche automatische Prüfung (seit 26.10.2026)
+
+`scripts/healthcheck.mjs` (`npm run healthcheck`, mit `-- --ai` zusätzlich ein lokaler KI-Test ohne E-Mail-Versand)
+prüft: Startseite/Google-Freigabe, robots.txt, sitemap.xml, Weiterleitung der alten Adresse, Schnittstellen,
+SSL-Zertifikat, letztes Vercel-Deployment, Pflicht-Env-Variablen, Laufzeit-Logs der letzten 24 h (Timeouts,
+fehlgeschlagene Mails, **nicht zugestellte Leads**), `npm audit` und den Git-Stand. Ein geplanter Auftrag in der
+Claude-App führt das täglich aus (läuft nur, wenn die App geöffnet und der Mac an ist) und darf einfache, klar
+abgegrenzte technische Fehler selbst beheben (Sicherheitsupdates ohne Major-Sprung, Konfigurationsfehler,
+eindeutige Code-Bugs), jeweils mit Build + Test vor und Healthcheck nach dem Deployment und automatischem
+Zurückrollen bei Misserfolg. Nicht selbstständig angefasst werden: Texte/Einwilligungen, Kostenfaktor, Prompts,
+Modelle, Domain/DNS, Zugangsdaten, Onepage, Preise/Tarife.
+
 ## Testfälle (manuell durchspielen)
 
 1. Leichter, eindeutiger Schaden (z. B. Kratzer) → erwartet: `severity.level: "leicht"`
