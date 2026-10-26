@@ -252,6 +252,8 @@ abgegrenzte technische Fehler selbst beheben (Sicherheitsupdates ohne Major-Spru
 eindeutige Code-Bugs), jeweils mit Build + Test vor und Healthcheck nach dem Deployment und automatischem
 Zurückrollen bei Misserfolg. Nicht selbstständig angefasst werden: Texte/Einwilligungen, Kostenfaktor, Prompts,
 Modelle, Domain/DNS, Zugangsdaten, Onepage, Preise/Tarife.
+Bei ungültigen Gmail-Zugangsdaten (Log: `535 ... Username and Password not accepted`) hilft `bash scripts/mail-setup.sh`:
+es prüft Adresse und App-Passwort direkt bei Google und trägt sie nur bei Erfolg in Vercel ein.
 
 ## Testfälle (manuell durchspielen)
 
