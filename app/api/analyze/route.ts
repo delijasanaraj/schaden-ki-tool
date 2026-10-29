@@ -18,6 +18,7 @@ import { SYSTEM_PROMPT, buildUserContext } from "@/lib/prompt";
 import { cleanLead, leadErrors, type LeadData } from "@/lib/lead";
 import { sendNotification, sendPush } from "@/lib/notify";
 import { clientIp, createRateLimiter } from "@/lib/rateLimit";
+import { PARTNER_CORS_HEADERS, authenticatePartner } from "@/lib/partner";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -61,6 +62,9 @@ function applyCostCalibration(result: AnalysisResult): AnalysisResult {
 }
 
 const isRateLimited = createRateLimiter(Number(process.env.RATE_LIMIT_PER_HOUR || 20));
+// Partner-Apps (siehe lib/partner.ts) werden pro Schluessel begrenzt, nicht pro IP: Im Mobilfunk
+// teilen sich viele Nutzer eine IP-Adresse.
+const isPartnerRateLimited = createRateLimiter(Number(process.env.RATE_LIMIT_PARTNER_PER_HOUR || 300));
 
 function formatVehicle(v: VehicleData): string {
   const lines = [
@@ -76,9 +80,11 @@ function formatVehicle(v: VehicleData): string {
   return lines.join("\n");
 }
 
-function formatLeadMail(lead: LeadData, vehicle: VehicleData, photoCount: number): string {
+function formatLeadMail(lead: LeadData, vehicle: VehicleData, photoCount: number, source?: string): string {
   return [
-    "Jemand hat die KI-Schadenanalyse genutzt und seine Kontaktdaten hinterlassen.",
+    source
+      ? `Jemand hat die KI-Schadenanalyse über die App „${source}“ genutzt und seine Kontaktdaten hinterlassen.`
+      : "Jemand hat die KI-Schadenanalyse genutzt und seine Kontaktdaten hinterlassen.",
     "Der Kunde hat der Kontaktaufnahme zu dieser Anfrage ausdrücklich zugestimmt.",
     "",
     `Name: ${lead.firstName} ${lead.lastName}`,
@@ -103,13 +109,26 @@ async function stripExifAndReencode(buffer: Buffer, maxEdge: number): Promise<Bu
     .toBuffer();
 }
 
+// Vorabanfrage (CORS) von Partner-Apps auf Web-Basis. Sie traegt den Schluessel nicht mit.
+export function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: PARTNER_CORS_HEADERS });
+}
+
 export async function POST(req: NextRequest) {
+  const partner = authenticatePartner(req);
+  const reply = (data: unknown, init?: { status?: number }) =>
+    NextResponse.json(data, { ...init, headers: partner.state === "none" ? undefined : PARTNER_CORS_HEADERS });
+  const source = partner.state === "ok" ? partner.label : undefined;
+
   // Wird erst nach erfolgreicher Pruefung der Kontaktdaten belegt und muss auch auf
   // Fehlerpfaden abgewartet werden, sonst verwirft Vercel den laufenden Versand.
   let leadDelivery: Promise<void> = Promise.resolve();
   try {
-    if (isRateLimited(clientIp(req))) {
-      return NextResponse.json(
+    if (partner.state === "invalid") {
+      return reply({ error: "unauthorized", message: "Ungültiger API-Schlüssel." }, { status: 401 });
+    }
+    if (partner.state === "ok" ? isPartnerRateLimited(partner.name) : isRateLimited(clientIp(req))) {
+      return reply(
         { error: "rate_limited", message: "Zu viele Anfragen. Bitte versuchen Sie es später erneut." },
         { status: 429 }
       );
@@ -129,7 +148,7 @@ export async function POST(req: NextRequest) {
       leadInput = {};
     }
     if (Object.keys(leadErrors(leadInput)).length > 0 || leadInput.consent !== true) {
-      return NextResponse.json(
+      return reply(
         {
           error: "invalid_lead",
           message:
@@ -141,13 +160,13 @@ export async function POST(req: NextRequest) {
     const lead = cleanLead(leadInput as LeadData);
 
     if (files.length < MIN_IMAGES) {
-      return NextResponse.json(
+      return reply(
         { error: "invalid_input", message: "Bitte laden Sie mindestens ein Foto hoch." },
         { status: 400 }
       );
     }
     if (files.length > MAX_IMAGES) {
-      return NextResponse.json(
+      return reply(
         { error: "invalid_input", message: `Maximal ${MAX_IMAGES} Fotos sind möglich.` },
         { status: 400 }
       );
@@ -156,7 +175,7 @@ export async function POST(req: NextRequest) {
     let totalBytes = 0;
     for (const file of files) {
       if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
-        return NextResponse.json(
+        return reply(
           {
             error: "invalid_file_type",
             message: `Dateityp nicht unterstützt: ${file.type || "unbekannt"}. Erlaubt sind JPEG, PNG und WebP.`,
@@ -165,7 +184,7 @@ export async function POST(req: NextRequest) {
         );
       }
       if (file.size > MAX_IMAGE_BYTES) {
-        return NextResponse.json(
+        return reply(
           { error: "file_too_large", message: `Datei "${file.name}" ist zu groß (max. 8 MB pro Foto).` },
           { status: 400 }
         );
@@ -175,7 +194,7 @@ export async function POST(req: NextRequest) {
     // Zweite Absicherung neben der clientseitigen Pruefung - Vercel-Funktionen
     // lehnen zu grosse Bodies sonst mit einem unklaren Plattform-Fehler ab.
     if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
-      return NextResponse.json(
+      return reply(
         {
           error: "upload_too_large",
           message:
@@ -200,7 +219,7 @@ export async function POST(req: NextRequest) {
       }
       const parsed = vehicleDataSchema.safeParse(rawObject);
       if (!parsed.success) {
-        return NextResponse.json(
+        return reply(
           { error: "invalid_input", message: "Fahrzeugdaten konnten nicht gelesen werden." },
           { status: 400 }
         );
@@ -223,7 +242,7 @@ export async function POST(req: NextRequest) {
       );
     } catch (err) {
       console.error("[/api/analyze] Bildverarbeitung fehlgeschlagen:", err instanceof Error ? err.message : err);
-      return NextResponse.json(
+      return reply(
         {
           error: "invalid_file",
           message:
@@ -237,8 +256,8 @@ export async function POST(req: NextRequest) {
     // Gutachter ankommt, wenn die Analyse spaeter in ein Timeout laeuft.
     leadDelivery = Promise.all([
       sendNotification(
-        `Neuer KI-Lead: ${lead.firstName} ${lead.lastName}`,
-        formatLeadMail(lead, vehicleData, files.length),
+        `Neuer KI-Lead${source ? ` (${source})` : ""}: ${lead.firstName} ${lead.lastName}`,
+        formatLeadMail(lead, vehicleData, files.length, source),
         // Die bereits bereinigten Fotos (ohne EXIF/GPS), wie sie auch an die KI gehen
         processedImages.map((b64, i) => ({
           filename: `Foto-${String(i + 1).padStart(2, "0")}.jpg`,
@@ -248,7 +267,7 @@ export async function POST(req: NextRequest) {
       ),
       // Push ohne Kontaktdaten (die stehen nur in der E-Mail)
       sendPush(
-        "Neuer KI-Lead",
+        source ? `Neuer KI-Lead (${source})` : "Neuer KI-Lead",
         `${[vehicleData.make, vehicleData.model].filter(Boolean).join(" ") || "Fahrzeug unbekannt"} · ${files.length} Foto${files.length === 1 ? "" : "s"}. Kontaktdaten stehen in der E-Mail.`
       ),
     ]).then(([ok]) => {
@@ -290,13 +309,13 @@ export async function POST(req: NextRequest) {
 
     if (response.stop_reason === "refusal") {
       await leadDelivery;
-      return NextResponse.json({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 502 });
+      return reply({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 502 });
     }
 
     const parsed = response.parsed_output as AnalysisResult | null;
     if (!parsed) {
       await leadDelivery;
-      return NextResponse.json({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 502 });
+      return reply({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 502 });
     }
 
     const calibrated = applyCostCalibration(parsed);
@@ -304,7 +323,7 @@ export async function POST(req: NextRequest) {
 
     await leadDelivery;
     await sendNotification(
-      `KI-Ergebnis für ${lead.firstName} ${lead.lastName}`,
+      `KI-Ergebnis${source ? ` (${source})` : ""} für ${lead.firstName} ${lead.lastName}`,
       [
         `Ergebnis der KI-Analyse für ${lead.firstName} ${lead.lastName} (Tel. ${lead.phone}):`,
         "",
@@ -319,10 +338,10 @@ export async function POST(req: NextRequest) {
       ].join("\n")
     );
 
-    return NextResponse.json({ result: calibrated, analysisId: randomUUID() });
+    return reply({ result: calibrated, analysisId: randomUUID() });
   } catch (err) {
     console.error("[/api/analyze] Fehler:", err instanceof Error ? err.message : err);
     await leadDelivery;
-    return NextResponse.json({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 500 });
+    return reply({ error: "analysis_failed", message: GENERIC_ERROR_MESSAGE }, { status: 500 });
   }
 }

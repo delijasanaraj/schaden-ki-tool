@@ -241,6 +241,17 @@ zu späteren Werkstatt-Rechnungen absurd hoch wirkt, schadet dem Vertrauen genau
 - **Kein Monitoring/Alerting** bei Fehlern oder ungewöhnlich hohem Verbrauch – im Anthropic-Dashboard
   gelegentlich manuell prüfen oder ein Ausgaben-Limit im Anthropic-Konto setzen.
 
+## Schnittstelle für Partner-Apps (Crash Assist, seit 29.10.2026)
+
+`POST /api/analyze` kann von Partner-Apps mit einem API-Schlüssel genutzt werden (Header `X-API-Key` oder
+`Authorization: Bearer`). Schlüssel stehen in der Vercel-Variable `PARTNER_API_KEYS` (`name:schluessel`,
+kommagetrennt, Änderung wirkt erst nach Redeploy). Ohne Schlüssel läuft alles wie bisher für die Webseite;
+ein falscher Schlüssel ergibt 401. Mit Schlüssel gilt das Limit pro Partner (`RATE_LIMIT_PARTNER_PER_HOUR`,
+Standard 300) statt pro IP, Antworten tragen CORS-Header, und der App-Name steht in den Lead-Mails
+(„Neuer KI-Lead (Crash Assist): …“). Kontaktdaten und Einwilligung bleiben Pflicht (`lead` mit `consent: true`).
+Die Anleitung für Entwickler steht in `docs/PARTNER-API.md`. Neuen Schlüssel erzeugen: `openssl rand -hex 24`,
+in Vercel ersetzen, redeployen, Partner informieren. Der tägliche Healthcheck prüft, dass ein falscher Schlüssel abgewiesen wird.
+
 ## Tägliche automatische Prüfung (seit 26.10.2026)
 
 `scripts/healthcheck.mjs` (`npm run healthcheck`, mit `-- --ai` zusätzlich ein lokaler KI-Test ohne E-Mail-Versand)

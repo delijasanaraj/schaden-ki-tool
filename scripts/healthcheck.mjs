@@ -75,6 +75,13 @@ async function liveChecks() {
   }
 
   try {
+    const r = await get(`${BASE}/api/analyze`, { method: "POST", body: new FormData(), headers: { "X-API-Key": "healthcheck-ungueltiger-schluessel" } });
+    add(r.status === 401 ? "ok" : "fail", "Partner-Schnittstelle (falscher Schluessel wird abgewiesen)", `HTTP ${r.status}`);
+  } catch (e) {
+    add("fail", "Partner-Schnittstelle", e.message);
+  }
+
+  try {
     const r = await get(`${BASE}/api/extract-vehicle`, { method: "POST", body: new FormData() });
     add(r.status === 400 || r.status === 429 ? "ok" : "fail", "Fahrzeugschein-Schnittstelle", `HTTP ${r.status}`);
   } catch (e) {
