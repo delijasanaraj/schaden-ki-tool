@@ -89,6 +89,14 @@ Das Ergebnis ist eine **unverbindliche KI-Ersteinschätzung, kein Gutachten** un
 durch einen Kfz-Sachverständigen. Die Kostenspanne ist nur eine grobe Orientierung. Dieser Hinweis muss in der App
 direkt beim Ergebnis stehen, ebenso `limitations` und `possible_hidden_damage`.
 
+## Testmodus (ohne Kosten, ohne Mail)
+
+Mit dem zusätzlichen Header `X-Test-Mode: true` (nur zusammen mit gültigem Schlüssel) läuft die Anfrage durch alle
+echten Prüfungen (Kontaktdaten, Fotos, Fahrzeugdaten, Fehlercodes), liefert dann aber eine **feste Beispielantwort**
+im gleichen Format zurück, mit `"test": true`. Es gibt keinen KI-Aufruf, keine Mail an den Gutachter und keine Kosten.
+Die Zahlen sind erfunden. Zum Entwickeln und für automatische Tests immer diesen Modus nutzen. Der Header
+darf in der Produktiv-App nicht mitgesendet werden.
+
 ## Fehler
 
 Fehlerantworten haben die Form `{ "error": "<code>", "message": "<Text für den Nutzer>" }`.
@@ -107,11 +115,12 @@ Fehlerantworten haben die Form `{ "error": "<code>", "message": "<Text für den 
 
 `message` ist immer für Endnutzer formuliert und kann direkt angezeigt werden.
 
-## Beispiel
+## Beispiel (hier im Testmodus; für echte Analysen die Zeile mit X-Test-Mode entfernen)
 
 ```bash
 curl -X POST https://fahrzeug-schadenrechner.stefan-witmaier.de/api/analyze \
   -H "X-API-Key: $SCHLUESSEL" \
+  -H "X-Test-Mode: true" \
   -F "photos=@front.jpg" -F "photos=@seite.jpg" \
   -F 'lead={"firstName":"Max","lastName":"Mustermann","phone":"+49 171 1234567","email":"max@example.de","consent":true}' \
   -F 'vehicleData={"make":"VW","model":"Golf","firstRegistration":"2019","drivable":"ja"}'

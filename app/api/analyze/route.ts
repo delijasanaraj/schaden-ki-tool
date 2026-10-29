@@ -18,7 +18,7 @@ import { SYSTEM_PROMPT, buildUserContext } from "@/lib/prompt";
 import { cleanLead, leadErrors, type LeadData } from "@/lib/lead";
 import { sendNotification, sendPush } from "@/lib/notify";
 import { clientIp, createRateLimiter } from "@/lib/rateLimit";
-import { PARTNER_CORS_HEADERS, authenticatePartner } from "@/lib/partner";
+import { PARTNER_CORS_HEADERS, SAMPLE_RESULT, authenticatePartner } from "@/lib/partner";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -250,6 +250,11 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Testmodus nur fuer Partner mit gueltigem Schluessel (siehe lib/partner.ts): keine KI, keine Mail.
+    if (partner.state === "ok" && req.headers.get("x-test-mode")?.toLowerCase() === "true") {
+      return reply({ result: SAMPLE_RESULT, analysisId: randomUUID(), test: true });
     }
 
     // Lead-Benachrichtigung startet VOR der Analyse, damit der Kontakt auch dann beim
